@@ -1,0 +1,1609 @@
+openapi: 3.0.1
+info:
+  title: GestionComida API
+  description: API REST para gestión inteligente de inventario de alimentos
+  contact:
+    name: GestionComida Team
+    email: dev@gestioncomida.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 2.0.0
+servers:
+- url: http://localhost:8081
+  description: Generated server url
+security:
+- Bearer Authentication: []
+tags:
+- name: Catálogo de Productos
+  description: Gestión del catálogo maestro de productos con deduplicación automática
+- name: Ubicaciones
+  description: Gestión de ubicaciones de almacenamiento de alimentos
+- name: Inventario
+  description: Gestión de items en inventario y stock de alimentos
+- name: Notificaciones
+  description: Gestión de notificaciones y alertas del sistema
+- name: Tickets
+  description: Procesamiento y consulta de tickets de compra
+paths:
+  /api/tickets/{ticketId}:
+    get:
+      tags:
+      - Tickets
+      summary: Obtener ticket por ID
+      description: Obtiene el detalle de un ticket del usuario autenticado.
+      operationId: getTicketById
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Ticket no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+        "200":
+          description: Ticket encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+      security:
+      - Bearer Authentication: []
+    put:
+      tags:
+      - Tickets
+      summary: Actualizar un ticket
+      description: Actualiza los detalles de un ticket existente.
+      operationId: updateTicket
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketUpdateRequestDto'
+        required: true
+      responses:
+        "400":
+          description: Datos de solicitud inválidos
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+        "404":
+          description: Ticket no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+        "200":
+          description: Ticket actualizado correctamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+      security:
+      - Bearer Authentication: []
+    delete:
+      tags:
+      - Tickets
+      summary: Eliminar un ticket
+      description: Elimina un ticket existente.
+      operationId: deleteTicket
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Ticket eliminado correctamente
+        "404":
+          description: Ticket no encontrado
+      security:
+      - Bearer Authentication: []
+  /api/tickets/{ticketId}/lines/{lineId}:
+    put:
+      tags:
+      - Tickets
+      summary: Actualizar una línea de ticket
+      description: Actualiza una línea específica sin afectar las demás.
+      operationId: updateTicketLine
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: lineId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketLineUpdateRequestDto'
+        required: true
+      responses:
+        "200":
+          description: Línea actualizada correctamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+        "404":
+          description: Ticket o línea no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+      security:
+      - Bearer Authentication: []
+    delete:
+      tags:
+      - Tickets
+      summary: Eliminar una línea de ticket
+      description: Elimina una línea específica sin afectar las demás.
+      operationId: deleteTicketLine
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: lineId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Línea eliminada correctamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+        "404":
+          description: Ticket o línea no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/{id}:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener una notificación por ID
+      description: Retorna los detalles de una notificación específica
+      operationId: getNotificationById
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la notificación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Notificación encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+        "404":
+          description: Notificación no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+    put:
+      tags:
+      - Notificaciones
+      summary: Actualizar una notificación
+      description: Actualiza los datos de una notificación existente
+      operationId: updateNotification
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la notificación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationDto'
+        required: true
+      responses:
+        "200":
+          description: Notificación actualizada exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+        "404":
+          description: Notificación no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+    delete:
+      tags:
+      - Notificaciones
+      summary: Eliminar una notificación
+      description: Elimina una notificación del sistema
+      operationId: deleteNotification
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la notificación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Notificación eliminada exitosamente
+        "404":
+          description: Notificación no encontrada
+      security:
+      - Bearer Authentication: []
+  /api/notifications/{id}/mark-sent:
+    put:
+      tags:
+      - Notificaciones
+      summary: Marcar como enviada
+      description: Marca una notificación como enviada
+      operationId: markAsSent
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la notificación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Notificación marcada como enviada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/{id}/mark-read:
+    put:
+      tags:
+      - Notificaciones
+      summary: Marcar como leída
+      description: Marca una notificación como leída por el usuario
+      operationId: markAsRead
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la notificación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Notificación marcada como leída
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/{id}/mark-failed:
+    put:
+      tags:
+      - Notificaciones
+      summary: Marcar como fallida
+      description: Marca una notificación como fallida y registra la razón del fallo
+      operationId: markAsFailed
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la notificación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: reason
+        in: query
+        description: Razón del fallo
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Notificación marcada como fallida
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/locations/{id}:
+    get:
+      tags:
+      - Ubicaciones
+      summary: Obtener una ubicación por ID
+      description: Retorna los detalles de una ubicación específica
+      operationId: getLocationById
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la ubicación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Ubicación no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+        "200":
+          description: Ubicación encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+      security:
+      - Bearer Authentication: []
+    put:
+      tags:
+      - Ubicaciones
+      summary: Actualizar una ubicación
+      description: Actualiza los datos de una ubicación existente
+      operationId: updateLocation
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la ubicación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationDto'
+        required: true
+      responses:
+        "200":
+          description: Ubicación actualizada exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+        "404":
+          description: Ubicación no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+      security:
+      - Bearer Authentication: []
+    delete:
+      tags:
+      - Ubicaciones
+      summary: Eliminar una ubicación
+      description: Elimina una ubicación del sistema
+      operationId: deleteLocation
+      parameters:
+      - name: id
+        in: path
+        description: UUID de la ubicación
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Ubicación no encontrada
+        "204":
+          description: Ubicación eliminada exitosamente
+      security:
+      - Bearer Authentication: []
+  /api/inventory/{id}:
+    get:
+      tags:
+      - Inventario
+      summary: Obtener un item del inventario
+      description: Retorna los detalles de un item específico del inventario
+      operationId: getItem
+      parameters:
+      - name: id
+        in: path
+        description: UUID del item de inventario
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Item encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InventoryItemResponseDto'
+        "404":
+          description: Item no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InventoryItemResponseDto'
+      security:
+      - Bearer Authentication: []
+    put:
+      tags:
+      - Inventario
+      summary: Actualizar item de inventario
+      description: Actualiza la cantidad o estado de un item en el inventario
+      operationId: updateItem
+      parameters:
+      - name: id
+        in: path
+        description: UUID del item de inventario
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItemUpdateRequestDto'
+        required: true
+      responses:
+        "404":
+          description: Item no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InventoryItemResponseDto'
+        "200":
+          description: Item actualizado exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InventoryItemResponseDto'
+      security:
+      - Bearer Authentication: []
+    delete:
+      tags:
+      - Inventario
+      summary: Eliminar item del inventario
+      description: Elimina un item del inventario del usuario
+      operationId: deleteItem
+      parameters:
+      - name: id
+        in: path
+        description: UUID del item de inventario
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Item eliminado exitosamente
+        "404":
+          description: Item no encontrado
+      security:
+      - Bearer Authentication: []
+  /api/catalog-products/{id}:
+    get:
+      tags:
+      - Catálogo de Productos
+      summary: Obtener un producto por ID
+      description: Retorna los detalles de un producto específico
+      operationId: getProductById
+      parameters:
+      - name: id
+        in: path
+        description: UUID del producto
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Producto no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogProductResponseDto'
+        "200":
+          description: Producto encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogProductResponseDto'
+      security:
+      - Bearer Authentication: []
+    put:
+      tags:
+      - Catálogo de Productos
+      summary: Actualizar producto
+      description: Actualiza los datos de un producto existente
+      operationId: updateProduct
+      parameters:
+      - name: id
+        in: path
+        description: UUID del producto
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogProductDto'
+        required: true
+      responses:
+        "200":
+          description: Producto actualizado exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogProductResponseDto'
+        "404":
+          description: Producto no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogProductResponseDto'
+      security:
+      - Bearer Authentication: []
+    delete:
+      tags:
+      - Catálogo de Productos
+      summary: Eliminar producto
+      description: Elimina un producto del catálogo
+      operationId: deleteProduct
+      parameters:
+      - name: id
+        in: path
+        description: UUID del producto
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "404":
+          description: Producto no encontrado
+        "204":
+          description: Producto eliminado exitosamente
+      security:
+      - Bearer Authentication: []
+  /api/tickets/{ticketId}/sync-inventory:
+    post:
+      tags:
+      - Tickets
+      summary: Sincronizar ticket a catalogo e inventario
+      description: Confirma el resultado validado por usuario y sincroniza un ticket
+        guardado para poblar/actualizar CatalogProduct e InventoryItem.
+      operationId: syncTicketInventory
+      parameters:
+      - name: ticketId
+        in: path
+        description: UUID del ticket
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "400":
+          description: Ticket invalido o sin permisos
+        "202":
+          description: Sincronizacion ejecutada
+      security:
+      - Bearer Authentication: []
+  /api/tickets/upload:
+    post:
+      tags:
+      - Tickets
+      summary: Procesar ticket de compra
+      description: Sube una imagen/PDF y procesa el ticket con OCR + IA. Solo guarda
+        ticket y lineas; la sincronizacion a catalogo/inventario se confirma despues
+        desde UX.
+      operationId: uploadTicket
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              required:
+              - file
+              type: object
+              properties:
+                file:
+                  type: string
+                  description: "Archivo del ticket (JPG, PNG o PDF)"
+                  format: binary
+                locationId:
+                  type: string
+                  description: UUID de la ubicacion destino (opcional)
+                  format: uuid
+      responses:
+        "400":
+          description: Archivo invalido o ID incorrecto
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketProcessingResultDto'
+        "415":
+          description: Tipo de archivo no soportado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketProcessingResultDto'
+        "500":
+          description: Error procesando el ticket
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketProcessingResultDto'
+        "200":
+          description: Ticket procesado exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketProcessingResultDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener todas las notificaciones
+      description: Retorna una lista de todas las notificaciones del sistema
+      operationId: getAllNotifications
+      responses:
+        "200":
+          description: Notificaciones obtenidas correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+    post:
+      tags:
+      - Notificaciones
+      summary: Crear una nueva notificación
+      description: Crea una nueva notificación en el sistema
+      operationId: createNotification
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationDto'
+        required: true
+      responses:
+        "400":
+          description: Datos inválidos
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+        "201":
+          description: Notificación creada exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/locations:
+    get:
+      tags:
+      - Ubicaciones
+      summary: Obtener mis ubicaciones
+      description: Retorna todas las ubicaciones del usuario autenticado
+      operationId: getUserLocations
+      responses:
+        "200":
+          description: Lista de ubicaciones obtenida correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationResponseDto'
+      security:
+      - Bearer Authentication: []
+    post:
+      tags:
+      - Ubicaciones
+      summary: Crear una nueva ubicación
+      description: Crea una nueva ubicación para el usuario autenticado
+      operationId: createLocation
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationDto'
+        required: true
+      responses:
+        "201":
+          description: Ubicación creada exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+        "400":
+          description: Datos inválidos
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/inventory:
+    get:
+      tags:
+      - Inventario
+      summary: Obtener mi inventario
+      description: Retorna todos los items del inventario del usuario autenticado
+      operationId: getUserInventory
+      responses:
+        "200":
+          description: Inventario obtenido correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItemResponseDto'
+      security:
+      - Bearer Authentication: []
+    post:
+      tags:
+      - Inventario
+      summary: Crear item de inventario
+      description: Crea un nuevo item en el inventario del usuario
+      operationId: createItem
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItemCreateRequestDto'
+        required: true
+      responses:
+        "200":
+          description: Item creado exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InventoryItemResponseDto'
+        "400":
+          description: Datos inválidos
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/InventoryItemResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/catalog-products:
+    get:
+      tags:
+      - Catálogo de Productos
+      summary: Obtener todos los productos
+      description: Retorna una lista completa de productos del catálogo
+      operationId: getAllProducts
+      responses:
+        "200":
+          description: Productos obtenidos correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CatalogProductResponseDto'
+      security:
+      - Bearer Authentication: []
+    post:
+      tags:
+      - Catálogo de Productos
+      summary: Crear nuevo producto
+      description: Crea un nuevo producto en el catálogo
+      operationId: createProduct
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogProductDto'
+        required: true
+      responses:
+        "201":
+          description: Producto creado exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogProductResponseDto'
+        "400":
+          description: Datos inválidos
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogProductResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/catalog-products/search-or-create:
+    post:
+      tags:
+      - Catálogo de Productos
+      summary: Buscar o crear producto
+      description: "Busca un producto existente por nombre+marca. Si no existe, lo\
+        \ crea automáticamente. Garantiza DEDUPLICACIÓN."
+      operationId: findOrCreateProduct
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CatalogProductSearchRequestDto'
+        required: true
+      responses:
+        "200":
+          description: Producto encontrado o creado exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/CatalogProductResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/tickets:
+    get:
+      tags:
+      - Tickets
+      summary: Listar tickets del usuario
+      description: "Devuelve tickets paginados del usuario autenticado, ordenados\
+        \ por fecha desc."
+      operationId: getUserTickets
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: Listado de tickets
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/PageTicketResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/by-status/{status}:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener notificaciones por estado
+      description: Retorna todas las notificaciones con un estado específico
+      operationId: getByStatus
+      parameters:
+      - name: status
+        in: path
+        description: "Estado de la notificación (PENDING, SENT, READ, FAILED)"
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Notificaciones obtenidas correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/by-status-and-type/{status}/{alertType}:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener notificaciones por estado y tipo
+      description: Retorna notificaciones que coinciden con estado y tipo específicos
+      operationId: getByStatusAndType
+      parameters:
+      - name: status
+        in: path
+        description: Estado de la notificación
+        required: true
+        schema:
+          type: string
+      - name: alertType
+        in: path
+        description: Tipo de alerta
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Notificaciones obtenidas correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/by-inventory-item/{inventoryItemId}:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener notificaciones por item
+      description: Retorna todas las notificaciones asociadas a un item de inventario
+      operationId: getByInventoryItem
+      parameters:
+      - name: inventoryItemId
+        in: path
+        description: UUID del item de inventario
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Notificaciones obtenidas correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/by-alert-type/{alertType}:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener notificaciones por tipo
+      description: Retorna todas las notificaciones de un tipo específico
+      operationId: getByAlertType
+      parameters:
+      - name: alertType
+        in: path
+        description: "Tipo de alerta (LOW_STOCK, EXPIRATION_WARNING, etc.)"
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Notificaciones obtenidas correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/locations/exists:
+    get:
+      tags:
+      - Ubicaciones
+      summary: Verificar existencia de ubicación
+      description: Verifica si existe una ubicación con el nombre especificado
+      operationId: existsByName
+      parameters:
+      - name: name
+        in: query
+        description: Nombre de la ubicación a verificar
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Verificación completada
+          content:
+            '*/*':
+              schema:
+                type: boolean
+      security:
+      - Bearer Authentication: []
+  /api/locations/by-name:
+    get:
+      tags:
+      - Ubicaciones
+      summary: Buscar ubicación por nombre
+      description: Busca una ubicación específica por nombre
+      operationId: getByName
+      parameters:
+      - name: name
+        in: query
+        description: Nombre de la ubicación a buscar
+        required: true
+        schema:
+          type: string
+      responses:
+        "404":
+          description: Ubicación no encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+        "200":
+          description: Ubicación encontrada
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/LocationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/catalog-products/search/by-name:
+    get:
+      tags:
+      - Catálogo de Productos
+      summary: Buscar por nombre
+      description: "Busca productos por nombre (búsqueda parcial, case-insensitive)"
+      operationId: searchByName
+      parameters:
+      - name: name
+        in: query
+        description: Nombre o parte del nombre a buscar
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Búsqueda completada
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CatalogProductResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/catalog-products/search/by-brand:
+    get:
+      tags:
+      - Catálogo de Productos
+      summary: Buscar por marca
+      description: Busca todos los productos de una marca específica
+      operationId: searchByBrand
+      parameters:
+      - name: brand
+        in: query
+        description: Marca a buscar
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Búsqueda completada
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CatalogProductResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/catalog-products/exists:
+    get:
+      tags:
+      - Catálogo de Productos
+      summary: Verificar existencia
+      description: Verifica si existe un producto con nombre y marca específicos
+      operationId: existsByNameAndBrand
+      parameters:
+      - name: name
+        in: query
+        description: Nombre del producto
+        required: true
+        schema:
+          type: string
+      - name: brand
+        in: query
+        description: Marca del producto
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Verificación completada
+          content:
+            '*/*':
+              schema:
+                type: boolean
+      security:
+      - Bearer Authentication: []
+components:
+  schemas:
+    TicketLineUpdateRequestDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        parsedText:
+          type: string
+        quantity:
+          type: number
+        price:
+          type: number
+        lineTotal:
+          type: number
+    TicketUpdateRequestDto:
+      type: object
+      properties:
+        locationId:
+          type: string
+          format: uuid
+        purchaseDatetime:
+          type: string
+          format: date-time
+        supermarketName:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketLineUpdateRequestDto'
+    TicketLineResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        parsedText:
+          type: string
+        confidence:
+          type: number
+          format: double
+        quantity:
+          type: string
+        price:
+          type: string
+        lineTotal:
+          type: string
+    TicketResponseDto:
+      type: object
+      properties:
+        createdBy:
+          type: string
+        createdInstant:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        modifiedInstant:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        imageHash:
+          type: string
+        purchaseDatetime:
+          type: string
+        rawText:
+          type: string
+        keyInvoice:
+          type: string
+        supermarketName:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketLineResponseDto'
+    NotificationDto:
+      type: object
+      properties:
+        inventoryItemId:
+          type: string
+          format: uuid
+        channel:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+        reason:
+          type: string
+        alertType:
+          type: string
+    NotificationResponseDto:
+      type: object
+      properties:
+        createdBy:
+          type: string
+        createdInstant:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        modifiedInstant:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+        id:
+          type: string
+          format: uuid
+        inventoryItemId:
+          type: string
+          format: uuid
+        channel:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+        reason:
+          type: string
+        alertType:
+          type: string
+    LocationDto:
+      type: object
+      properties:
+        name:
+          type: string
+          description: "Nombre de la ubicación de almacenamiento específica (p. ej.,\
+            \ 'Nevera', 'Despensa', 'Congelador')."
+          example: Nevera
+        type:
+          type: string
+          description: "Categoría o lugar físico donde se encuentra la ubicación (p.\
+            \ ej., 'Cocina', 'Garaje', 'Habitación')."
+          example: Cocina
+    LocationResponseDto:
+      type: object
+      properties:
+        createdBy:
+          type: string
+        createdInstant:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        modifiedInstant:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+    InventoryItemUpdateRequestDto:
+      type: object
+      properties:
+        quantity:
+          type: string
+        expirationDate:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+    InventoryItemResponseDto:
+      type: object
+      properties:
+        createdBy:
+          type: string
+        createdInstant:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        modifiedInstant:
+          type: string
+          format: date-time
+        id:
+          type: string
+          format: uuid
+        catalogProductId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        productBrand:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        status:
+          type: string
+        expirationDate:
+          type: string
+        alertDate:
+          type: string
+        openedAt:
+          type: string
+        consumedAt:
+          type: string
+        notes:
+          type: string
+        quantity:
+          type: string
+        initialQuantity:
+          type: string
+        openShelfLifeDays:
+          type: integer
+          format: int32
+        consumedQuantity:
+          type: integer
+          format: int32
+    CatalogProductDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        isWeighed:
+          type: boolean
+        isPerishable:
+          type: boolean
+        shelfLifeDays:
+          type: integer
+          format: int32
+    CatalogProductResponseDto:
+      type: object
+      properties:
+        createdBy:
+          type: string
+        createdInstant:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+        modifiedInstant:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          format: int64
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        brand:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        isWeighed:
+          type: boolean
+        isPerishable:
+          type: boolean
+        shelfLifeDays:
+          type: integer
+          format: int32
+    LocalTime:
+      type: object
+      properties:
+        hour:
+          type: integer
+          format: int32
+        minute:
+          type: integer
+          format: int32
+        second:
+          type: integer
+          format: int32
+        nano:
+          type: integer
+          format: int32
+    TicketMetadataDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        fecha:
+          type: string
+          format: date
+        hora:
+          $ref: '#/components/schemas/LocalTime'
+        numeroTicket:
+          type: string
+        sucursal:
+          type: string
+        cajero:
+          type: string
+        entradaInventario:
+          type: boolean
+        purchaseInstant:
+          type: string
+          format: date-time
+    TicketProcessingResultDto:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/TicketMetadataDto'
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketLineResponseDto'
+        processedBy:
+          type: string
+        manualReviewRequired:
+          type: boolean
+        message:
+          type: string
+    InventoryItemCreateRequestDto:
+      type: object
+      properties:
+        catalogProductId:
+          type: string
+          format: uuid
+        locationId:
+          type: string
+          format: uuid
+        quantity:
+          type: string
+        expirationDate:
+          type: string
+        notes:
+          type: string
+    CatalogProductSearchRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+        brand:
+          type: string
+        category:
+          type: string
+        unit:
+          type: string
+        isWeighed:
+          type: boolean
+        isPerishable:
+          type: boolean
+        shelfLifeDays:
+          type: integer
+          format: int32
+    PageTicketResponseDto:
+      type: object
+      properties:
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        number:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        numberOfElements:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketResponseDto'
+        sort:
+          $ref: '#/components/schemas/SortObject'
+        first:
+          type: boolean
+        last:
+          type: boolean
+        pageable:
+          $ref: '#/components/schemas/PageableObject'
+        empty:
+          type: boolean
+    PageableObject:
+      type: object
+      properties:
+        paged:
+          type: boolean
+        unpaged:
+          type: boolean
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        offset:
+          type: integer
+          format: int64
+        sort:
+          $ref: '#/components/schemas/SortObject'
+    SortObject:
+      type: object
+      properties:
+        sorted:
+          type: boolean
+        empty:
+          type: boolean
+        unsorted:
+          type: boolean
+  securitySchemes:
+    Bearer Authentication:
+      type: http
+      description: "JWT token de Keycloak. Use el formato: Bearer <token>"
+      scheme: bearer
+      bearerFormat: JWT

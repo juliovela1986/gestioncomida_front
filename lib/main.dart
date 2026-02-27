@@ -1,59 +1,93 @@
 import 'package:flutter/material.dart';
-import 'package:gestioncomida_front/services/menu_service.dart';
-import 'models/menu.dart';
+import 'services/auth_service.dart';
+import 'screens/home_screen.dart';
 
-void main() => runApp(GestionComidaApp());
+void main() {
+  runApp(const MyApp());
+}
 
-class GestionComidaApp extends StatelessWidget {
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Gestión Comida',
-      home: MenuPage(),
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const LoginPage(),
     );
   }
 }
 
-class MenuPage extends StatefulWidget {
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
-  _MenuPageState createState() => _MenuPageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _MenuPageState extends State<MenuPage> {
-  late Future<List<Menu>> menus;
+class _LoginPageState extends State<LoginPage> {
+  final AuthService _authService = AuthService();
+  bool _isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    menus = MenuService().fetchMenus();
+  Future<void> _login() async {
+    setState(() => _isLoading = true);
+
+    final token = await _authService.login(context);
+
+    if (token != null && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } else {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Autenticación cancelada')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Menús Disponibles')),
-      body: FutureBuilder<List<Menu>>(
-        future: menus,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No hay menús disponibles'));
-          } else {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                final menu = snapshot.data![index];
-                return ListTile(
-                  title: Text(menu.nombre),
-                  subtitle: Text('Precio: \$${menu.precio.toStringAsFixed(2)}'),
-                );
-              },
-            );
-          }
-        },
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.restaurant_menu, size: 100, color: Colors.blue),
+              const SizedBox(height: 20),
+              const Text(
+                'Gestión Comida',
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Organiza tus alimentos inteligentemente',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 60),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 50, vertical: 15),
+                      ),
+                      child: const Text(
+                        'Iniciar Sesión',
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    ),
+            ],
+          ),
+        ),
       ),
     );
   }
