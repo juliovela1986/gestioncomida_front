@@ -6,6 +6,7 @@ import 'notifications_screen.dart';
 import 'upload_pdf_screen.dart';
 import 'locations_screen.dart';
 import 'expired_products_screen.dart';
+import 'create_manual_ticket_screen.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
 
@@ -173,6 +174,20 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
+                  MaterialPageRoute(builder: (_) => const CreateManualTicketScreen()),
+                );
+              },
+              icon: const Icon(Icons.edit_note),
+              label: const Text('Crear Ticket Manual'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              ),
+            ),
+            const SizedBox(height: 15),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
                   MaterialPageRoute(builder: (_) => const TicketsHistoryScreen()),
                 );
               },
@@ -221,7 +236,6 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: const Icon(Icons.warning_amber),
               label: const Text('Productos Caducados'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
               ),
             ),

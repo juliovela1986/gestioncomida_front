@@ -750,6 +750,28 @@ paths:
                 $ref: '#/components/schemas/TicketProcessingResultDto'
       security:
       - Bearer Authentication: []
+  /api/tickets/manual:
+    post:
+      tags:
+      - Tickets
+      summary: Crear ticket manualmente
+      description: Crea un ticket de forma manual sin procesamiento OCR/IA
+      operationId: createManualTicket
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketManualCreateRequestDto'
+        required: true
+      responses:
+        "201":
+          description: Ticket creado exitosamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+      security:
+      - Bearer Authentication: []
   /api/notifications:
     post:
       tags:
@@ -1718,6 +1740,21 @@ components:
           type: boolean
         message:
           type: string
+    TicketManualCreateRequestDto:
+      type: object
+      properties:
+        supermarketName:
+          type: string
+        purchaseDatetime:
+          type: string
+          format: date-time
+        locationId:
+          type: string
+          format: uuid
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketLineCreateRequestDto'
     InventoryItemCreateRequestDto:
       type: object
       properties:

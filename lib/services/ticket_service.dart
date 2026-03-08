@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'api_client.dart';
 import '../models/ticket.dart';
 import '../models/expiration_management_response.dart';
+import '../models/ticket_manual_create.dart';
 import 'auth_service.dart';
 
 class TicketService {
@@ -46,6 +47,11 @@ class TicketService {
 
   Future<void> assignExpirationDates(String ticketId, List<Map<String, String>> assignments) async {
     await _apiClient.dio.post('/api/tickets/$ticketId/assign-expiration-dates', data: assignments);
+  }
+
+  Future<TicketResponseDto> createManualTicket(TicketManualCreateRequest request) async {
+    final response = await _apiClient.dio.post('/api/tickets/manual', data: request.toJson());
+    return TicketResponseDto.fromJson(response.data);
   }
 
   Future<TicketResponseDto> updateTicket(String ticketId, Map<String, dynamic> data) async {
