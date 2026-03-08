@@ -45,7 +45,11 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
     });
 
     try {
-      final response = await _ticketService.uploadTicket(_selectedImage!.path);
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(_selectedImage!.path),
+      });
+      
+      final response = await _ticketService.uploadTicket(formData);
       
       print('[Upload] Response status: ${response.statusCode}');
       print('[Upload] Response data: ${response.data}');
@@ -96,17 +100,51 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
       }
     } on DioException catch (e) {
       print('[Upload] DioException: ${e.message}');
+      print('[Upload] Status code: ${e.response?.statusCode}');
       print('[Upload] Response: ${e.response?.data}');
-      setState(() {
-        _errorMessage = 'Error: ${e.response?.data ?? e.message}';
-        _isUploading = false;
-      });
+      
+      if (mounted) {
+        String errorMessage = 'Error al procesar el ticket';
+        
+        if (e.response?.statusCode == 409) {
+          errorMessage = 'Este ticket ya fue procesado anteriormente';
+        } else if (e.response?.statusCode == 401) {
+          errorMessage = 'Sesión expirada. Por favor, inicia sesión de nuevo';
+        } else if (e.response?.statusCode == 403) {
+          errorMessage = 'Acceso denegado. Verifica tus permisos';
+        } else if (e.response?.statusCode == 415) {
+          errorMessage = 'Formato de archivo no soportado';
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        
+        setState(() {
+          _errorMessage = null;
+          _isUploading = false;
+        });
+      }
     } catch (e) {
       print('[Upload] Error: $e');
-      setState(() {
-        _errorMessage = 'Error inesperado: $e';
-        _isUploading = false;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error inesperado al procesar el ticket'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        
+        setState(() {
+          _errorMessage = null;
+          _isUploading = false;
+        });
+      }
     }
   }
 

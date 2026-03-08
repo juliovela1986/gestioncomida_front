@@ -21,6 +21,7 @@ class _TicketsHistoryScreenState extends State<TicketsHistoryScreen> {
   }
 
   Future<void> _loadTickets() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await _ticketService.getTickets(page: 0, size: 20);
@@ -29,6 +30,7 @@ class _TicketsHistoryScreenState extends State<TicketsHistoryScreen> {
       // Extraer los tickets del response paginado
       final List<dynamic> content = data['content'] ?? [];
       
+      if (!mounted) return;
       setState(() {
         _tickets = content.map((ticket) => {
           'id': ticket['id'],
@@ -41,6 +43,7 @@ class _TicketsHistoryScreenState extends State<TicketsHistoryScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -153,11 +156,22 @@ class _TicketsHistoryScreenState extends State<TicketsHistoryScreen> {
                           children: [
                             Text('Fecha: ${ticket['purchaseDatetime']}'),
                             Text('Productos: ${ticket['lineCount']} | Total: ${ticket['total']}€'),
-                            if (!synced)
-                              const Text(
-                                'Pendiente de sincronizar',
-                                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: synced ? Colors.green.shade100 : Colors.orange.shade100,
+                                borderRadius: BorderRadius.circular(4),
                               ),
+                              child: Text(
+                                synced ? '✅ Sincronizado' : '⏳ Pendiente de sincronizar',
+                                style: TextStyle(
+                                  color: synced ? Colors.green.shade900 : Colors.orange.shade900,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         trailing: Row(

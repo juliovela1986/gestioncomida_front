@@ -15,13 +15,13 @@ class LocationService {
     return LocationResponseDto.fromJson(response.data);
   }
 
-  Future<LocationResponseDto> createLocation(LocationDto location) async {
-    final response = await _apiClient.dio.post('/api/locations', data: location.toJson());
+  Future<LocationResponseDto> createLocation(Map<String, dynamic> data) async {
+    final response = await _apiClient.dio.post('/api/locations', data: data);
     return LocationResponseDto.fromJson(response.data);
   }
 
-  Future<LocationResponseDto> updateLocation(String id, LocationDto location) async {
-    final response = await _apiClient.dio.put('/api/locations/$id', data: location.toJson());
+  Future<LocationResponseDto> updateLocation(String id, Map<String, dynamic> data) async {
+    final response = await _apiClient.dio.put('/api/locations/$id', data: data);
     return LocationResponseDto.fromJson(response.data);
   }
 

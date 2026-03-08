@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/inventory_item.dart';
+import '../models/location.dart';
 import '../services/inventory_service.dart';
+import '../services/location_service.dart';
 
 class EditInventoryItemScreen extends StatefulWidget {
   final InventoryItemResponseDto item;
@@ -16,10 +18,14 @@ class EditInventoryItemScreen extends StatefulWidget {
 
 class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
   final InventoryService _inventoryService = InventoryService();
+  final LocationService _locationService = LocationService();
   late TextEditingController _quantityController;
   late TextEditingController _notesController;
   late TextEditingController _expirationDateController;
+  late TextEditingController _alertDateController;
   bool _isSaving = false;
+  List<LocationResponseDto> _locations = [];
+  String? _selectedLocationId;
 
   @override
   void initState() {
@@ -27,6 +33,18 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
     _quantityController = TextEditingController(text: widget.item.quantity ?? '');
     _notesController = TextEditingController(text: widget.item.notes ?? '');
     _expirationDateController = TextEditingController(text: widget.item.expirationDate ?? '');
+    _alertDateController = TextEditingController(text: widget.item.alertDate ?? '');
+    _selectedLocationId = widget.item.locationId;
+    _loadLocations();
+  }
+
+  Future<void> _loadLocations() async {
+    try {
+      final locations = await _locationService.getUserLocations();
+      setState(() => _locations = locations);
+    } catch (e) {
+      print('Error al cargar ubicaciones: $e');
+    }
   }
 
   @override
@@ -34,6 +52,7 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
     _quantityController.dispose();
     _notesController.dispose();
     _expirationDateController.dispose();
+    _alertDateController.dispose();
     super.dispose();
   }
 
@@ -44,7 +63,9 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
       final updatedData = {
         'quantity': _quantityController.text,
         'expirationDate': _expirationDateController.text,
+        'alertDate': _alertDateController.text,
         'notes': _notesController.text,
+        if (_selectedLocationId != null) 'locationId': _selectedLocationId,
       };
 
       await _inventoryService.updateItem(widget.item.id, updatedData);
@@ -86,6 +107,23 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
     if (picked != null) {
       setState(() {
         _expirationDateController.text = picked.toIso8601String().split('T')[0];
+        // Calcular automáticamente alertDate = expirationDate - 3 días
+        final alertDate = picked.subtract(const Duration(days: 3));
+        _alertDateController.text = alertDate.toIso8601String().split('T')[0];
+      });
+    }
+  }
+
+  Future<void> _selectAlertDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _alertDateController.text = picked.toIso8601String().split('T')[0];
       });
     }
   }
@@ -142,6 +180,28 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Ubicación
+            const Text('Ubicación', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: _selectedLocationId,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.location_on),
+              ),
+              hint: const Text('Selecciona una ubicación'),
+              items: _locations.map((location) {
+                return DropdownMenuItem(
+                  value: location.id,
+                  child: Text(location.name),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() => _selectedLocationId = value);
+              },
             ),
             const SizedBox(height: 16),
 
@@ -208,6 +268,29 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
               ),
               readOnly: true,
               onTap: _selectExpirationDate,
+            ),
+            const SizedBox(height: 16),
+
+            // Fecha de alerta
+            const Text('Fecha de Alerta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text(
+              'Se te notificará en esta fecha',
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _alertDateController,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _selectAlertDate,
+                ),
+                helperText: 'Calculada automáticamente (3 días antes)',
+              ),
+              readOnly: true,
+              onTap: _selectAlertDate,
             ),
             const SizedBox(height: 16),
 

@@ -17,12 +17,12 @@ security:
 tags:
 - name: Catálogo de Productos
   description: Gestión del catálogo maestro de productos con deduplicación automática
+- name: Notificaciones
+  description: API para la gestión de notificaciones
 - name: Ubicaciones
   description: Gestión de ubicaciones de almacenamiento de alimentos
 - name: Inventario
   description: Gestión de items en inventario y stock de alimentos
-- name: Notificaciones
-  description: Gestión de notificaciones y alertas del sistema
 - name: Tickets
   description: Procesamiento y consulta de tickets de compra
 paths:
@@ -635,6 +635,69 @@ paths:
           description: Sincronizacion ejecutada
       security:
       - Bearer Authentication: []
+  /api/tickets/{ticketId}/lines:
+    post:
+      tags:
+      - Tickets
+      summary: Añadir una nueva línea a un ticket
+      description: Añade una nueva línea de producto a un ticket existente.
+      operationId: addTicketLine
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketLineCreateRequestDto'
+        required: true
+      responses:
+        "404":
+          description: Ticket no encontrado
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+        "201":
+          description: Línea añadida correctamente
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/TicketResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/tickets/{ticketId}/assign-expiration-dates:
+    post:
+      tags:
+      - Tickets
+      summary: Asignar fechas de caducidad a productos del ticket
+      description: Asigna fechas de caducidad a múltiples productos del ticket en
+        una sola operación
+      operationId: assignExpirationDates
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/AssignExpirationDateRequestDto'
+        required: true
+      responses:
+        "204":
+          description: Fechas asignadas correctamente
+      security:
+      - Bearer Authentication: []
   /api/tickets/upload:
     post:
       tags:
@@ -688,23 +751,6 @@ paths:
       security:
       - Bearer Authentication: []
   /api/notifications:
-    get:
-      tags:
-      - Notificaciones
-      summary: Obtener todas las notificaciones
-      description: Retorna una lista de todas las notificaciones del sistema
-      operationId: getAllNotifications
-      responses:
-        "200":
-          description: Notificaciones obtenidas correctamente
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/NotificationResponseDto'
-      security:
-      - Bearer Authentication: []
     post:
       tags:
       - Notificaciones
@@ -922,6 +968,55 @@ paths:
                 $ref: '#/components/schemas/PageTicketResponseDto'
       security:
       - Bearer Authentication: []
+  /api/tickets/{ticketId}/expiration-management:
+    get:
+      tags:
+      - Tickets
+      summary: Obtener productos del ticket para gestión de caducidades
+      description: Devuelve los productos del ticket con sus lotes existentes en inventario
+        para asignar fechas de caducidad
+      operationId: getExpirationManagement
+      parameters:
+      - name: ticketId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Datos de gestión de caducidades
+          content:
+            '*/*':
+              schema:
+                $ref: '#/components/schemas/ExpirationManagementResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/notifications/user:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener las notificaciones del usuario autenticado
+      operationId: getUserNotifications
+      responses:
+        "200":
+          description: Lista de notificaciones obtenida correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+        "404":
+          description: Ubicación no encontrada
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
   /api/notifications/by-status/{status}:
     get:
       tags:
@@ -1029,6 +1124,31 @@ paths:
                   $ref: '#/components/schemas/NotificationResponseDto'
       security:
       - Bearer Authentication: []
+  /api/notifications/all:
+    get:
+      tags:
+      - Notificaciones
+      summary: Obtener todas las notificaciones (solo para administradores)
+      operationId: getAllNotifications
+      responses:
+        "403":
+          description: Acceso denegado
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+        "200":
+          description: Lista de todas las notificaciones obtenida correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponseDto'
+      security:
+      - Bearer Authentication: []
   /api/locations/exists:
     get:
       tags:
@@ -1079,6 +1199,62 @@ paths:
             '*/*':
               schema:
                 $ref: '#/components/schemas/LocationResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/inventory/with-expiration:
+    get:
+      tags:
+      - Inventario
+      summary: Obtener items con fecha de caducidad
+      description: Retorna los items del inventario que tienen fecha de caducidad
+        asignada
+      operationId: getItemsWithExpiration
+      responses:
+        "200":
+          description: Lista de items con fecha de caducidad
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItemResponseDto'
+      security:
+      - Bearer Authentication: []
+  /api/inventory/pending-expiration:
+    get:
+      tags:
+      - Inventario
+      summary: Obtener items sin fecha de caducidad
+      description: Retorna los items del inventario que no tienen fecha de caducidad
+        asignada
+      operationId: getPendingExpirationItems
+      responses:
+        "200":
+          description: Lista de items pendientes
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PendingExpirationItemDto'
+      security:
+      - Bearer Authentication: []
+  /api/inventory/grouped:
+    get:
+      tags:
+      - Inventario
+      summary: Obtener inventario agrupado por producto
+      description: Retorna el inventario agrupado por producto con todos sus lotes
+      operationId: getGroupedInventory
+      responses:
+        "200":
+          description: Inventario agrupado obtenido correctamente
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupedInventoryResponseDto'
       security:
       - Bearer Authentication: []
   /api/catalog-products/search/by-name:
@@ -1248,6 +1424,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TicketLineResponseDto'
+        inventorySynced:
+          type: boolean
     NotificationDto:
       type: object
       properties:
@@ -1344,10 +1522,15 @@ components:
           type: string
         expirationDate:
           type: string
+        alertDate:
+          type: string
         notes:
           type: string
         status:
           type: string
+        locationId:
+          type: string
+          format: uuid
     InventoryItemResponseDto:
       type: object
       properties:
@@ -1454,6 +1637,30 @@ components:
         shelfLifeDays:
           type: integer
           format: int32
+    TicketLineCreateRequestDto:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        parsedText:
+          type: string
+        quantity:
+          type: number
+        price:
+          type: number
+        lineTotal:
+          type: number
+    AssignExpirationDateRequestDto:
+      type: object
+      properties:
+        ticketLineId:
+          type: string
+          format: uuid
+        expirationDate:
+          type: string
     LocalTime:
       type: object
       properties:
@@ -1488,6 +1695,8 @@ components:
         sucursal:
           type: string
         cajero:
+          type: string
+        supermarketName:
           type: string
         entradaInventario:
           type: boolean
@@ -1601,6 +1810,100 @@ components:
           type: boolean
         unsorted:
           type: boolean
+    ExistingLotDto:
+      type: object
+      properties:
+        inventoryItemId:
+          type: string
+          format: uuid
+        expirationDate:
+          type: string
+          format: date
+        quantity:
+          type: number
+    ExpirationManagementResponseDto:
+      type: object
+      properties:
+        ticketId:
+          type: string
+          format: uuid
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductExpirationDto'
+    ProductExpirationDto:
+      type: object
+      properties:
+        ticketLineId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        newQuantity:
+          type: number
+        newInventoryItemId:
+          type: string
+          format: uuid
+        existingLots:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExistingLotDto'
+    PendingExpirationItemDto:
+      type: object
+      properties:
+        inventoryItemId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        quantity:
+          type: number
+        alreadyInInventory:
+          type: boolean
+        existingItemId:
+          type: string
+          format: uuid
+    GroupedInventoryResponseDto:
+      type: object
+      properties:
+        catalogProductId:
+          type: string
+          format: uuid
+        productName:
+          type: string
+        productBrand:
+          type: string
+        totalQuantity:
+          type: number
+        lotCount:
+          type: integer
+          format: int32
+        nextExpirationDate:
+          type: string
+          format: date
+        lots:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryLotDto'
+    InventoryLotDto:
+      type: object
+      properties:
+        inventoryItemId:
+          type: string
+          format: uuid
+        quantity:
+          type: number
+        expirationDate:
+          type: string
+          format: date
+        alertDate:
+          type: string
+          format: date
+        daysUntilExpiration:
+          type: integer
+          format: int32
+        status:
+          type: string
   securitySchemes:
     Bearer Authentication:
       type: http

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'api_client.dart';
 import '../models/ticket.dart';
+import '../models/expiration_management_response.dart';
 import 'auth_service.dart';
 
 class TicketService {
@@ -36,6 +37,17 @@ class TicketService {
     await _apiClient.dio.post('/api/tickets/$ticketId/sync-inventory');
   }
 
+  Future<ExpirationManagementResponse> getExpirationManagement(String ticketId) async {
+    print('[TicketService] 🔵 getExpirationManagement llamado con ID: $ticketId');
+    final response = await _apiClient.dio.get('/api/tickets/$ticketId/expiration-management');
+    print('[TicketService] ✅ Respuesta raw: ${response.data}');
+    return ExpirationManagementResponse.fromJson(response.data);
+  }
+
+  Future<void> assignExpirationDates(String ticketId, List<Map<String, String>> assignments) async {
+    await _apiClient.dio.post('/api/tickets/$ticketId/assign-expiration-dates', data: assignments);
+  }
+
   Future<TicketResponseDto> updateTicket(String ticketId, Map<String, dynamic> data) async {
     print('[TicketService] 🔵 updateTicket llamado con ID: $ticketId');
     print('[TicketService] 📝 Data a enviar: $data');
@@ -57,24 +69,24 @@ class TicketService {
     print('[TicketService] ✅ Línea eliminada exitosamente');
   }
 
-  Future<Response> uploadTicket(String filePath, {String? locationId}) async {
+  Future<TicketResponseDto> addTicketLine(String ticketId, Map<String, dynamic> lineData) async {
+    print('[TicketService] ➕ addTicketLine llamado - Ticket: $ticketId');
+    print('[TicketService] 📝 Data: $lineData');
+    await _apiClient.dio.post('/api/tickets/$ticketId/lines', data: lineData);
+    print('[TicketService] ✅ Línea añadida, obteniendo ticket actualizado...');
+    return await getTicketById(ticketId);
+  }
+
+  Future<Response> uploadTicket(FormData formData) async {
     try {
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(filePath),
-        if (locationId != null) 'locationId': locationId,
-      });
       return await _apiClient.dio.post('/api/tickets/upload', data: formData);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         print('[TicketService] ⚠️ Token expirado, refrescando...');
         final newToken = await _authService.refreshToken();
         if (newToken != null) {
-          print('[TicketService] ✅ Token refrescado, reintentando...');
-          final newFormData = FormData.fromMap({
-            'file': await MultipartFile.fromFile(filePath),
-            if (locationId != null) 'locationId': locationId,
-          });
-          return await _apiClient.dio.post('/api/tickets/upload', data: newFormData);
+          print('[TicketService] ✅ Token refrescado, pero FormData no se puede reusar');
+          throw Exception('Token expirado. Por favor, intenta de nuevo.');
         }
       }
       rethrow;

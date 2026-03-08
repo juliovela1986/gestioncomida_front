@@ -1,34 +1,34 @@
-class NotificationResponseDto {
+class NotificationModel {
   final String id;
-  final String? inventoryItemId;
-  final String? channel;
-  final DateTime? scheduledAt;
-  final String? status;
+  final String inventoryItemId;
+  final String channel;
+  final DateTime scheduledAt;
+  final String status;
   final String? reason;
-  final String? alertType;
-  final DateTime? createdInstant;
+  final String alertType;
+  final DateTime createdInstant;
 
-  NotificationResponseDto({
+  NotificationModel({
     required this.id,
-    this.inventoryItemId,
-    this.channel,
-    this.scheduledAt,
-    this.status,
+    required this.inventoryItemId,
+    required this.channel,
+    required this.scheduledAt,
+    required this.status,
     this.reason,
-    this.alertType,
-    this.createdInstant,
+    required this.alertType,
+    required this.createdInstant,
   });
 
-  factory NotificationResponseDto.fromJson(Map<String, dynamic> json) {
-    return NotificationResponseDto(
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    return NotificationModel(
       id: json['id'],
       inventoryItemId: json['inventoryItemId'],
       channel: json['channel'],
-      scheduledAt: json['scheduledAt'] != null ? DateTime.parse(json['scheduledAt']) : null,
+      scheduledAt: DateTime.parse(json['scheduledAt']),
       status: json['status'],
       reason: json['reason'],
       alertType: json['alertType'],
-      createdInstant: json['createdInstant'] != null ? DateTime.parse(json['createdInstant']) : null,
+      createdInstant: DateTime.parse(json['createdInstant']),
     );
   }
 }

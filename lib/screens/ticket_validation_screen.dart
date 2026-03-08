@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/ticket_service.dart';
 import '../models/ticket.dart';
 import 'edit_ticket_line_screen.dart';
+import 'expiration_date_manager_screen.dart';
 
 class TicketValidationScreen extends StatefulWidget {
   final String ticketId;
@@ -48,11 +49,34 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
     }
   }
 
+  double _calculateLineTotal(TicketLineResponseDto line) {
+    // Intentar usar lineTotal del backend
+    double lineTotal = double.tryParse(line.lineTotal ?? '0') ?? 0.0;
+    
+    // Si lineTotal es 0 o parece incorrecto, calcular: cantidad × precio
+    if (lineTotal == 0.0) {
+      final quantity = double.tryParse(line.quantity ?? '1') ?? 1.0;
+      final price = double.tryParse(line.price ?? '0') ?? 0.0;
+      lineTotal = quantity * price;
+    }
+    
+    return lineTotal;
+  }
+
   double _calculateTotal() {
     if (_ticket == null || _ticket!.lines.isEmpty) return 0.0;
     double total = 0.0;
     for (var line in _ticket!.lines) {
-      final lineTotal = double.tryParse(line.lineTotal ?? '0') ?? 0.0;
+      // Intentar usar lineTotal del backend
+      double lineTotal = double.tryParse(line.lineTotal ?? '0') ?? 0.0;
+      
+      // Si lineTotal es 0 o parece incorrecto, calcular: cantidad × precio
+      if (lineTotal == 0.0) {
+        final quantity = double.tryParse(line.quantity ?? '1') ?? 1.0;
+        final price = double.tryParse(line.price ?? '0') ?? 0.0;
+        lineTotal = quantity * price;
+      }
+      
       total += lineTotal;
     }
     return total;
@@ -60,14 +84,25 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
 
   Future<void> _syncToInventory() async {
     try {
+      print('[Validation] 🔵 Iniciando sincronización del ticket ${widget.ticketId}');
       await _ticketService.syncTicketInventory(widget.ticketId);
+      print('[Validation] ✅ Sincronización completada, navegando a gestión de fechas...');
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('✅ Ticket sincronizado al inventario')),
         );
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        
+        // Navegar a gestión de fechas de caducidad
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ExpirationDateManagerScreen(ticketId: widget.ticketId),
+          ),
+        );
       }
     } catch (e) {
+      print('[Validation] ❌ Error al sincronizar: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ Error: $e')),
@@ -109,6 +144,76 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('❌ Error al eliminar: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _addNewLine() async {
+    final productNameController = TextEditingController();
+    final quantityController = TextEditingController(text: '1');
+    final priceController = TextEditingController(text: '0.00');
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Añadir Producto'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: productNameController,
+                decoration: const InputDecoration(labelText: 'Nombre del producto'),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: quantityController,
+                decoration: const InputDecoration(labelText: 'Cantidad'),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: priceController,
+                decoration: const InputDecoration(labelText: 'Precio unitario (€)'),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Añadir'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      try {
+        final lineData = {
+          'productName': productNameController.text,
+          'quantity': quantityController.text,
+          'price': priceController.text,
+        };
+        
+        await _ticketService.addTicketLine(widget.ticketId, lineData);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✅ Producto añadido')),
+          );
+          _loadTicket();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('❌ Error al añadir: $e')),
           );
         }
       }
@@ -196,8 +301,16 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
                           style: const TextStyle(fontSize: 10, color: Colors.white)),
                     ),
                     title: Text(line.productName ?? line.parsedText ?? 'Sin nombre'),
-                    subtitle: Text(
-                        'Cantidad: ${line.quantity ?? "?"} | Precio: ${line.price ?? "?"}'),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Cantidad: ${line.quantity ?? "?"} | Precio unit: ${line.price ?? "?"}€'),
+                        Text(
+                          'Total línea: ${_calculateLineTotal(line).toStringAsFixed(2)}€',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ],
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -218,21 +331,35 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancelar'),
+                ElevatedButton.icon(
+                  onPressed: _addNewLine,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Añadir Producto'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    minimumSize: const Size(double.infinity, 45),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _syncToInventory,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Confirmar y Sincronizar'),
-                  ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _syncToInventory,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        child: const Text('Confirmar y Sincronizar'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

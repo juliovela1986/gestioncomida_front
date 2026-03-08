@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
 import '../screens/login_webview_screen.dart';
+import '../app_config.dart';
 import 'dart:math';
 import 'dart:convert';
 import 'dart:async';
@@ -11,14 +12,13 @@ import 'dart:async';
 class AuthService {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   
-  // Cache en memoria para el token de acceso
   String? _inMemoryToken;
 
   final String _clientId = 'gestioncomida-mobile';
   final List<String> _scopes = ['openid', 'profile', 'email'];
   final String _redirectUrl = 'com.gestioncomida.app://callback';
-  final String _issuer = 'http://192.168.1.143:8180/realms/gestioncomida';
-  final String _discoveryUrl = 'http://192.168.1.143:8180/realms/gestioncomida/.well-known/openid-configuration';
+  String get _issuer => AppConfig.keycloakRealm;
+  String get _discoveryUrl => AppConfig.discoveryUrl;
 
   String _generateRandomString(int len) {
     final random = Random.secure();
@@ -40,7 +40,18 @@ class AuthService {
       print('[Auth] ✅ Storage y cache en memoria limpiados');
 
       final dio = Dio();
-      final discoveryResponse = await dio.get(_discoveryUrl);
+      print('[Auth] 🌐 Obteniendo configuración desde: $_discoveryUrl');
+      
+      final discoveryResponse = await dio.get(
+        _discoveryUrl,
+        options: Options(
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Mobile Safari/537.36',
+          },
+        ),
+      );
+      
       final authEndpoint = discoveryResponse.data['authorization_endpoint'];
       final tokenEndpoint = discoveryResponse.data['token_endpoint'];
 
@@ -59,6 +70,8 @@ class AuthService {
           'code_challenge_method=S256&'
           'prompt=login';
       
+      print('[Auth] 🚀 URL de autorización generada, abriendo WebView');
+
       final result = await Navigator.push<String?>(
         context,
         MaterialPageRoute(
@@ -81,7 +94,12 @@ class AuthService {
                                 'redirect_uri': _redirectUrl,
                                 'code_verifier': storedCodeVerifier,
                             },
-                            options: Options(contentType: Headers.formUrlEncodedContentType),
+                            options: Options(
+                              contentType: Headers.formUrlEncodedContentType,
+                              headers: {
+                                'Accept': 'application/json',
+                              }
+                            ),
                         );
 
                         if (response.statusCode == 200 && response.data['access_token'] != null) {
@@ -95,6 +113,9 @@ class AuthService {
                         }
                     } catch (e) {
                         print('[Auth] ❌ Error al canjear código: $e');
+                        if (e is DioException) {
+                          print('[Auth] ❌ Detalle del error: ${e.response?.data}');
+                        }
                     }
                 }
                 return null; // Devolvemos null si falla
@@ -106,7 +127,12 @@ class AuthService {
       return result;
 
     } catch (e) {
-      print('[Auth] ❌ Error general: $e');
+      print('[Auth] ❌ Error general en login: $e');
+      if (e is DioException) {
+        print('[Auth] ❌ Status Code: ${e.response?.statusCode}');
+        print('[Auth] ❌ Response Data: ${e.response?.data}');
+        print('[Auth] ❌ Headers: ${e.response?.headers}');
+      }
       return null;
     }
   }
@@ -168,5 +194,12 @@ class AuthService {
       print('[Auth] ❌ Error al refrescar token: $e');
     }
     return null;
+  }
+
+  Future<void> logout() async {
+    print('[Auth] 🚪 Cerrando sesión...');
+    await _storage.deleteAll();
+    _inMemoryToken = null;
+    print('[Auth] ✅ Sesión cerrada y tokens eliminados');
   }
 }
