@@ -43,3 +43,26 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase configuration files (contienen claves)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+firebase_options.dart
+
+# Credenciales locales y basura visual
+ocr-extractor-key.json
+Captura de pantalla *.jpg
+WhatsApp Image *.jpeg
+
+# Documentacion local (fuera de control de versiones)
+/docs/
+
+# Mantener solo README.md en la raiz
+/*.md
+!/README.md
+
+# Archivos sueltos locales en raiz
+/*.txt
+/*.jpg
+/*.jpeg
+
