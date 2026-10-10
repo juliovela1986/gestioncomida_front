@@ -56,6 +56,14 @@ void main() {
     );
   }
 
+  Future<void> setPhoneViewport(WidgetTester tester) async {
+    // Viewport de teléfono: el ranking no debe comerse toda la lista en tests.
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
   group('ShoppingListScreen SCRUM-46', () {
     testWidgets('carga página paginada y muestra ítems', (tester) async {
       await tester.pumpWidget(
@@ -77,6 +85,7 @@ void main() {
     testWidgets('poll pending → ready y muestra ranking + estado por ítem', (
       tester,
     ) async {
+      await setPhoneViewport(tester);
       var calls = 0;
 
       await tester.pumpWidget(
@@ -320,6 +329,7 @@ void main() {
     testWidgets('SCRUM-121: ranking no concluyente sin crownear + precios por ítem', (
       tester,
     ) async {
+      await setPhoneViewport(tester);
       await tester.pumpWidget(
         buildApp(
           loader: ({required page, required size}) async =>
@@ -412,13 +422,18 @@ void main() {
       expect(find.text('Cobertura parcial — no comparable'), findsOneWidget);
       expect(find.text('Cobertura desigual entre supermercados'), findsOneWidget);
       expect(find.text('Ranking acumulado'), findsNothing);
+      // Híbrido: cobertura parcial → ranking plegado (preview + productos visibles).
+      expect(find.textContaining('supers · toca'), findsOneWidget);
+      expect(find.text('Manzanas'), findsOneWidget);
+      expect(find.text('Ver todos los supers'), findsOneWidget);
 
-      // Cobertura completa (Ahorramas) aparece antes que Hipercor 1/2.
+      // Preview (2 filas): Ahorramas (2/2) por encima de Hipercor (1/2).
       final ahorramas = tester.getTopLeft(find.text('Ahorramas').first);
       final hipercor = tester.getTopLeft(find.text('Hipercor').first);
       expect(ahorramas.dy < hipercor.dy, isTrue);
 
       // Expandir Manzanas → precios ordenados + sin precio para supers faltantes.
+      await tester.ensureVisible(find.text('Manzanas'));
       await tester.tap(find.text('Manzanas'));
       await tester.pumpAndSettle();
       expect(find.text('Precios por supermercado'), findsOneWidget);

@@ -62,6 +62,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   bool _isComparing = false;
   bool _rankingConclusive = true;
   String? _rankingPartialReason;
+  /// Ranking expandido: por defecto sí si concluyente, no si cobertura parcial.
+  bool _rankingExpanded = false;
+  bool _rankingExpandInitialized = false;
   String? _errorMessage;
   String? _compareStatusMessage;
   Timer? _pollTimer;
@@ -255,6 +258,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       _activeCompareIds = itemIds;
       _pollStartedAt = DateTime.now();
       _compareStatusMessage = l10n.translate('compare_starting');
+      // Nueva comparativa: reaplicar default expand (parcial → plegado).
+      _rankingExpandInitialized = false;
     });
 
     await _runComparePoll(forceRefresh: forceRefresh);
@@ -295,6 +300,11 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       setState(() {
         _rankingConclusive = response.rankingConclusive ?? true;
         _rankingPartialReason = response.rankingPartialReason;
+        if (!_rankingExpandInitialized && response.ranking.isNotEmpty) {
+          // Híbrido: cobertura parcial → ranking plegado (productos visibles).
+          _rankingExpanded = _rankingConclusive;
+          _rankingExpandInitialized = true;
+        }
         if (pending > 0 && ready > 0) {
           _compareStatusMessage = l10n.translate('compare_partial_updating');
         } else {
@@ -428,6 +438,47 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       ..sort((a, b) => a.displayUnitPrice.compareTo(b.displayUnitPrice));
   }
 
+  Widget _rankingRow(
+    AppLocalizations l10n, {
+    required int index,
+    required SupermarketRankingDto row,
+    required bool conclusive,
+  }) {
+    final isWinner = conclusive && index == 0;
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        radius: 14,
+        backgroundColor: isWinner ? Colors.green.shade100 : Colors.grey.shade200,
+        child: Text(
+          conclusive ? '${index + 1}' : '·',
+          style: TextStyle(
+            color: isWinner ? Colors.green.shade800 : Colors.grey.shade700,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      title: Text(row.supermarket),
+      subtitle: Text(
+        l10n.translate(
+          'compare_ranking_coverage',
+          params: {
+            'resolved': row.resolved.toString(),
+            'total': row.total.toString(),
+          },
+        ),
+      ),
+      trailing: Text(
+        '${row.totalPrice.toStringAsFixed(2)} €',
+        style: TextStyle(
+          fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
+          color: isWinner ? Colors.green.shade700 : null,
+        ),
+      ),
+    );
+  }
+
   Widget _buildRanking(AppLocalizations l10n) {
     final ranking = _sortedRanking(_accumulatedRanking.build());
     if (ranking.isEmpty) return const SizedBox.shrink();
@@ -436,67 +487,117 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final title = conclusive
         ? l10n.translate('compare_ranking_title')
         : l10n.translate('compare_ranking_inconclusive_title');
+    final maxListHeight = MediaQuery.sizeOf(context).height * 0.4;
+    final previewCount = ranking.length < 2 ? ranking.length : 2;
+    final preview = ranking.take(previewCount).toList();
 
     return Card(
       margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            if (!conclusive) ...[
-              const SizedBox(height: 4),
-              Text(
-                _rankingPartialReason?.isNotEmpty == true
-                    ? _rankingPartialReason!
-                    : l10n.translate('compare_ranking_partial'),
-                style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+            InkWell(
+              onTap: () => setState(() => _rankingExpanded = !_rankingExpanded),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (!conclusive) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              _rankingPartialReason?.isNotEmpty == true
+                                  ? _rankingPartialReason!
+                                  : l10n.translate('compare_ranking_partial'),
+                              style: TextStyle(
+                                color: Colors.orange.shade800,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                          if (!_rankingExpanded) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              l10n.translate(
+                                'compare_ranking_summary',
+                                params: {'count': ranking.length.toString()},
+                              ),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _rankingExpanded ? Icons.expand_less : Icons.expand_more,
+                      color: Colors.grey.shade700,
+                    ),
+                  ],
+                ),
               ),
-            ],
-            const SizedBox(height: 8),
-            ...ranking.asMap().entries.map((entry) {
-              final index = entry.key;
-              final row = entry.value;
-              final isWinner = conclusive && index == 0;
-              return ListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  radius: 14,
-                  backgroundColor: isWinner
-                      ? Colors.green.shade100
-                      : Colors.grey.shade200,
-                  child: Text(
-                    conclusive ? '${index + 1}' : '·',
-                    style: TextStyle(
-                      color: isWinner ? Colors.green.shade800 : Colors.grey.shade700,
-                      fontWeight: FontWeight.w600,
+            ),
+            if (!_rankingExpanded) ...[
+              const SizedBox(height: 4),
+              ...preview.asMap().entries.map(
+                    (e) => _rankingRow(
+                      l10n,
+                      index: e.key,
+                      row: e.value,
+                      conclusive: conclusive,
                     ),
                   ),
-                ),
-                title: Text(row.supermarket),
-                subtitle: Text(
-                  l10n.translate(
-                    'compare_ranking_coverage',
-                    params: {
-                      'resolved': row.resolved.toString(),
-                      'total': row.total.toString(),
-                    },
+              if (ranking.length > previewCount)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: () => setState(() => _rankingExpanded = true),
+                    child: Text(l10n.translate('compare_ranking_expand')),
                   ),
                 ),
-                trailing: Text(
-                  '${row.totalPrice.toStringAsFixed(2)} €',
-                  style: TextStyle(
-                    fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
-                    color: isWinner ? Colors.green.shade700 : null,
-                  ),
+            ] else ...[
+              const SizedBox(height: 4),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: maxListHeight),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  itemCount: ranking.length,
+                  itemBuilder: (context, index) {
+                    return _rankingRow(
+                      l10n,
+                      index: index,
+                      row: ranking[index],
+                      conclusive: conclusive,
+                    );
+                  },
                 ),
-              );
-            }),
+              ),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => setState(() => _rankingExpanded = false),
+                  child: Text(l10n.translate('compare_ranking_collapse')),
+                ),
+              ),
+            ],
           ],
         ),
       ),
