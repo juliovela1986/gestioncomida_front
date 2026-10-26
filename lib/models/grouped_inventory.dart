@@ -37,6 +37,8 @@ class LotDetail {
   final double quantity;
   final String? expirationDate;
   final String? alertDate;
+  final String? locationId;
+  final String? locationName; // Añadido para visualización
   final int? daysUntilExpiration;
   final String status;
 
@@ -45,9 +47,33 @@ class LotDetail {
     required this.quantity,
     this.expirationDate,
     this.alertDate,
+    this.locationId,
+    this.locationName,
     this.daysUntilExpiration,
     required this.status,
   });
+
+  LotDetail copyWith({
+    String? inventoryItemId,
+    double? quantity,
+    String? expirationDate,
+    String? alertDate,
+    String? locationId,
+    String? locationName,
+    int? daysUntilExpiration,
+    String? status,
+  }) {
+    return LotDetail(
+      inventoryItemId: inventoryItemId ?? this.inventoryItemId,
+      quantity: quantity ?? this.quantity,
+      expirationDate: expirationDate ?? this.expirationDate,
+      alertDate: alertDate ?? this.alertDate,
+      locationId: locationId ?? this.locationId,
+      locationName: locationName ?? this.locationName,
+      daysUntilExpiration: daysUntilExpiration ?? this.daysUntilExpiration,
+      status: status ?? this.status,
+    );
+  }
 
   factory LotDetail.fromJson(Map<String, dynamic> json) {
     return LotDetail(
@@ -55,6 +81,8 @@ class LotDetail {
       quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
       expirationDate: json['expirationDate'] as String?,
       alertDate: json['alertDate'] as String?,
+      locationId: json['locationId'] as String?,
+      locationName: json['locationName'] as String? ?? json['location'] as String?,
       daysUntilExpiration: json['daysUntilExpiration'] as int?,
       status: json['status'] as String? ?? 'ACTIVE',
     );

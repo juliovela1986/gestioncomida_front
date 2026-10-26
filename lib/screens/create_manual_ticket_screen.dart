@@ -4,7 +4,7 @@ import '../models/ticket_manual_create.dart';
 import '../models/location.dart';
 import '../services/ticket_service.dart';
 import '../services/location_service.dart';
-import 'ticket_validation_screen.dart';
+import 'ticket_validation_enhanced_screen.dart';
 
 class CreateManualTicketScreen extends StatefulWidget {
   const CreateManualTicketScreen({super.key});
@@ -22,7 +22,7 @@ class _CreateManualTicketScreenState extends State<CreateManualTicketScreen> {
   DateTime _purchaseDate = DateTime.now();
   String? _selectedLocationId;
   List<LocationResponseDto> _locations = [];
-  List<_LineItem> _lines = [_LineItem()];
+  final List<_LineItem> _lines = [_LineItem()];
   bool _isLoading = false;
 
   @override
@@ -96,7 +96,10 @@ class _CreateManualTicketScreenState extends State<CreateManualTicketScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => TicketValidationScreen(ticketId: ticket.id),
+            builder: (_) => TicketValidationEnhancedScreen(
+              ticketId: ticket.id,
+              onValidated: () => Navigator.pop(context),
+            ),
           ),
         );
       }
@@ -144,7 +147,7 @@ class _CreateManualTicketScreenState extends State<CreateManualTicketScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedLocationId,
+              initialValue: _selectedLocationId,
               decoration: const InputDecoration(
                 labelText: 'Ubicación (opcional)',
                 border: OutlineInputBorder(),

@@ -50,12 +50,10 @@ ios/Runner/GoogleService-Info.plist
 firebase_options.dart
 
 # Credenciales locales y basura visual
-ocr-extractor-key.json
-Captura de pantalla *.jpg
-WhatsApp Image *.jpeg
+firebase-service-account.json
+.env
 
-# Documentacion local (fuera de control de versiones)
-/docs/
+
 
 # Mantener solo README.md en la raiz
 /*.md

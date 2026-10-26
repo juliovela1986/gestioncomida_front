@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import '../core/error_utils.dart';
 import '../services/ticket_service.dart';
 import 'ticket_validation_screen.dart';
 import 'package:image_picker/image_picker.dart';
@@ -29,7 +30,7 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
         });
       }
     } catch (e) {
-      setState(() => _errorMessage = 'Error al seleccionar imagen: $e');
+      setState(() => _errorMessage = userFriendlyError(e, fallback: 'No se pudo seleccionar la imagen. Inténtalo de nuevo.'));
     }
   }
 
@@ -68,29 +69,19 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
         
         if (ticketId != null) {
           print('[Upload] Ticket ID obtenido: $ticketId');
+          final uploadPayload = response.data is Map<String, dynamic>
+              ? Map<String, dynamic>.from(response.data as Map)
+              : <String, dynamic>{};
           
-          // Parsear las líneas del response
-          final linesData = response.data['lines'] as List?;
-          final lines = linesData?.map((e) => {
-            'id': e['id'],
-            'productId': e['productId'],
-            'productName': e['productName'],
-            'parsedText': e['parsedText'],
-            'confidence': e['confidence'],
-            'quantity': e['quantity'],
-            'price': e['price'],
-            'lineTotal': e['lineTotal'],
-          }).toList() ?? [];
-          
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TicketValidationScreen(
-                ticketId: ticketId!,
-                initialTicketData: response.data,
-              ),
-            ),
-          );
+           Navigator.pushReplacement(
+             context,
+             MaterialPageRoute(
+               builder: (_) => TicketValidationScreen(
+                 ticketId: ticketId!,
+                 initialTicketData: uploadPayload,
+               ),
+             ),
+           );
         } else {
           setState(() {
             _errorMessage = 'Error: No se pudo obtener el ID del ticket';
@@ -133,8 +124,8 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
       print('[Upload] Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error inesperado al procesar el ticket'),
+          SnackBar(
+            content: Text(userFriendlyError(e, fallback: 'No se pudo procesar el ticket. Inténtalo de nuevo.')),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 4),
           ),

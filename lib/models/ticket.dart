@@ -6,6 +6,7 @@ class TicketResponseDto {
   final String? keyInvoice;
   final String? supermarketName;
   final bool? inventorySynced;
+  final String? ticketTotal;
   final List<TicketLineResponseDto> lines;
   final String? createdBy;
   final DateTime? createdInstant;
@@ -18,6 +19,7 @@ class TicketResponseDto {
     this.keyInvoice,
     this.supermarketName,
     this.inventorySynced,
+    this.ticketTotal,
     required this.lines,
     this.createdBy,
     this.createdInstant,
@@ -32,6 +34,7 @@ class TicketResponseDto {
       keyInvoice: json['keyInvoice'],
       supermarketName: json['supermarketName'],
       inventorySynced: json['inventorySynced'],
+      ticketTotal: json['ticketTotal'],
       lines: (json['lines'] as List?)?.map((e) => TicketLineResponseDto.fromJson(e)).toList() ?? [],
       createdBy: json['createdBy'],
       createdInstant: json['createdInstant'] != null ? DateTime.parse(json['createdInstant']) : null,

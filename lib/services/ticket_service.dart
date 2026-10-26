@@ -3,11 +3,9 @@ import 'api_client.dart';
 import '../models/ticket.dart';
 import '../models/expiration_management_response.dart';
 import '../models/ticket_manual_create.dart';
-import 'auth_service.dart';
 
 class TicketService {
   final ApiClient _apiClient = ApiClient();
-  final AuthService _authService = AuthService();
 
   Future<Response> getTickets({int page = 0, int size = 20}) async {
     try {
@@ -34,8 +32,16 @@ class TicketService {
     return TicketResponseDto.fromJson(response.data);
   }
 
-  Future<void> syncTicketInventory(String ticketId) async {
-    await _apiClient.dio.post('/api/tickets/$ticketId/sync-inventory');
+  Future<void> syncTicketInventory(String ticketId, {String? locationId}) async {
+    final queryParams = <String, dynamic>{};
+    if (locationId != null) {
+      queryParams['locationId'] = locationId;
+    }
+
+    await _apiClient.dio.post(
+      '/api/tickets/$ticketId/sync-inventory',
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
   }
 
   Future<ExpirationManagementResponse> getExpirationManagement(String ticketId) async {
@@ -84,19 +90,18 @@ class TicketService {
   }
 
   Future<Response> uploadTicket(FormData formData) async {
-    try {
-      return await _apiClient.dio.post('/api/tickets/upload', data: formData);
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        print('[TicketService] ⚠️ Token expirado, refrescando...');
-        final newToken = await _authService.refreshToken();
-        if (newToken != null) {
-          print('[TicketService] ✅ Token refrescado, pero FormData no se puede reusar');
-          throw Exception('Token expirado. Por favor, intenta de nuevo.');
-        }
-      }
-      rethrow;
-    }
+    return await _apiClient.dio.post('/api/tickets/upload', data: formData);
+  }
+
+  Future<TicketResponseDto> validateTicket(String ticketId) async {
+    print('[TicketService] ✅ validateTicket llamado con ID: $ticketId');
+    final response = await _apiClient.dio.post('/api/tickets/$ticketId/validate');
+    return TicketResponseDto.fromJson(response.data);
+  }
+
+  Future<void> updateTicketLine(String ticketId, String lineId, Map<String, dynamic> data) async {
+    print('[TicketService] 📝 updateTicketLine - Ticket: $ticketId, Line: $lineId');
+    await _apiClient.dio.put('/api/tickets/$ticketId/lines/$lineId', data: data);
   }
 
   // MOCK: Obtener tickets recientes (simulado localmente)

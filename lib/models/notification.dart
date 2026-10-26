@@ -1,6 +1,6 @@
 class NotificationModel {
   final String id;
-  final String inventoryItemId;
+  final String? inventoryItemId;
   final String channel;
   final DateTime scheduledAt;
   final String status;
@@ -22,13 +22,15 @@ class NotificationModel {
   factory NotificationModel.fromJson(Map<String, dynamic> json) {
     return NotificationModel(
       id: json['id'],
-      inventoryItemId: json['inventoryItemId'],
-      channel: json['channel'],
-      scheduledAt: DateTime.parse(json['scheduledAt']),
-      status: json['status'],
+      inventoryItemId: json['inventoryItemId'] as String?,
+      channel: json['channel'] as String? ?? 'PUSH',
+      scheduledAt: DateTime.tryParse(json['scheduledAt']?.toString() ?? '') ??
+          DateTime.tryParse(json['createdInstant']?.toString() ?? '') ??
+          DateTime.now(),
+      status: json['status'] as String? ?? 'PENDING',
       reason: json['reason'],
-      alertType: json['alertType'],
-      createdInstant: DateTime.parse(json['createdInstant']),
+      alertType: json['alertType'] as String? ?? 'REMINDER',
+      createdInstant: DateTime.tryParse(json['createdInstant']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 }

@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/expiration_management_response.dart';
+import '../models/location.dart';
 import '../services/inventory_service.dart';
 import '../services/ticket_service.dart';
+import '../services/location_service.dart';
+import '../l10n/app_localizations.dart';
+import '../widgets/expiry_date_voice_widget.dart';
 
 class ExpirationDateManagerScreen extends StatefulWidget {
   final String ticketId;
-  
-  const ExpirationDateManagerScreen({super.key, required this.ticketId});
+
+  /// Datos pre-asignados desde el editor de líneas: lineId → {locationId, expirationDate, alertDate}
+  final Map<String, Map<String, dynamic>> preAssignedExtras;
+
+  const ExpirationDateManagerScreen({
+    super.key,
+    required this.ticketId,
+    this.preAssignedExtras = const {},
+  });
 
   @override
   State<ExpirationDateManagerScreen> createState() => _ExpirationDateManagerScreenState();
@@ -16,9 +27,14 @@ class ExpirationDateManagerScreen extends StatefulWidget {
 class _ExpirationDateManagerScreenState extends State<ExpirationDateManagerScreen> {
   final InventoryService _inventoryService = InventoryService();
   final TicketService _ticketService = TicketService();
+  final LocationService _locationService = LocationService();
   
   List<ProductToManage> _products = [];
-  Map<String, DateTime?> _selectedDates = {}; // ticketLineId -> fecha
+  final Map<String, DateTime?> _selectedDates = {}; // ticketLineId -> fecha caducidad
+  final Map<String, DateTime?> _selectedAlertDates = {}; // ticketLineId -> fecha alerta
+  final Map<String, String?> _selectedLocations = {}; // ticketLineId -> locationId
+  
+  List<LocationResponseDto> _locations = [];
   int _currentIndex = 0;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -26,33 +42,62 @@ class _ExpirationDateManagerScreenState extends State<ExpirationDateManagerScree
   @override
   void initState() {
     super.initState();
-    _loadItems();
+    _loadInitialData();
   }
 
-  Future<void> _loadItems() async {
+  Future<void> _loadInitialData() async {
     try {
       final response = await _ticketService.getExpirationManagement(widget.ticketId);
-      print('[ExpirationManager] ✅ Respuesta: ${response.products.length} productos');
+      final locs = await _locationService.getUserLocations();
       
-      // Filtrar solo productos que tienen newInventoryItemId (los que necesitan fecha)
       final productsNeedingDate = response.products
           .where((p) => p.newInventoryItemId.isNotEmpty)
           .toList();
       
-      print('[ExpirationManager] 🎯 Productos que necesitan fecha: ${productsNeedingDate.length}');
-      
       setState(() {
         _products = productsNeedingDate;
+        _locations = locs;
+        
+        // Pre-seleccionar "Despensa" por defecto para cada producto
+        final defaultLoc = locs.firstWhere(
+          (l) => l.name.toLowerCase().contains('despensa'),
+          orElse: () => locs.isNotEmpty ? locs.first : LocationResponseDto(id: '', name: '', type: '', createdInstant: DateTime.now(), userId: ''),
+        );
+
+        for (var p in productsNeedingDate) {
+          if (defaultLoc.id.isNotEmpty) {
+            _selectedLocations[p.ticketLineId] = defaultLoc.id;
+          }
+        }
+
+        // Pre-rellenar con datos asignados desde el editor de líneas (si los hay)
+        for (var p in productsNeedingDate) {
+          final extras = widget.preAssignedExtras[p.ticketLineId];
+          if (extras == null) continue;
+
+          final locId = extras['locationId'] as String?;
+          final expDate = extras['expirationDate'] as DateTime?;
+          final alertDate = extras['alertDate'] as DateTime?;
+
+          if (locId != null && locId.isNotEmpty) {
+            _selectedLocations[p.ticketLineId] = locId;
+          }
+          if (expDate != null) {
+            _selectedDates[p.ticketLineId] = expDate;
+            // Pre-rellenar alerta si existe o sugerir 3 días antes
+            _selectedAlertDates[p.ticketLineId] =
+                alertDate ?? expDate.subtract(const Duration(days: 3));
+          }
+        }
+
         _isLoading = false;
       });
-    } catch (e, stackTrace) {
-      print('[ExpirationManager] ❌ Error: $e');
-      print('[ExpirationManager] 📍 StackTrace: $stackTrace');
+    } catch (e) {
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _pickDate() async {
+  Future<void> _pickExpirationDate() async {
     final date = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 7)),
@@ -62,14 +107,89 @@ class _ExpirationDateManagerScreenState extends State<ExpirationDateManagerScree
 
     if (date != null) {
       setState(() {
-        _selectedDates[_products[_currentIndex].ticketLineId] = date;
+        final lineId = _products[_currentIndex].ticketLineId;
+        _selectedDates[lineId] = date;
+        // Sugerir alerta 3 días antes si no hay una
+        if (_selectedAlertDates[lineId] == null) {
+          _selectedAlertDates[lineId] = date.subtract(const Duration(days: 3));
+        }
       });
+    }
+  }
+
+  void _showExpiryVoiceInput() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ExpiryDateVoiceWidget(
+        onDateDetected: (date) {
+          setState(() {
+            final lineId = _products[_currentIndex].ticketLineId;
+            _selectedDates[lineId] = date;
+            if (_selectedAlertDates[lineId] == null) {
+              _selectedAlertDates[lineId] = date.subtract(const Duration(days: 3));
+            }
+          });
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Fecha reconocida: ${DateFormat('dd/MM/yyyy').format(date)}')),
+          );
+        },
+        onFallback: () {
+          Navigator.pop(context);
+          _pickExpirationDate();
+        },
+      ),
+    );
+  }
+
+  Future<void> _pickAlertDate() async {
+    final expDate = _selectedDates[_products[_currentIndex].ticketLineId] ?? DateTime.now().add(const Duration(days: 7));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedAlertDates[_products[_currentIndex].ticketLineId] ?? expDate.subtract(const Duration(days: 3)),
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: expDate,
+    );
+
+    if (date != null) {
+      setState(() {
+        _selectedAlertDates[_products[_currentIndex].ticketLineId] = date;
+      });
+    }
+  }
+
+  Future<void> _updateInventoryItemWithRetry(String itemId, Map<String, dynamic> payload) async {
+    const delays = <Duration>[
+      Duration(milliseconds: 0),
+      Duration(milliseconds: 350),
+      Duration(milliseconds: 700),
+    ];
+
+    Object? lastError;
+    for (final delay in delays) {
+      if (delay.inMilliseconds > 0) {
+        await Future.delayed(delay);
+      }
+      try {
+        await _inventoryService.updateItem(itemId, payload);
+        return;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    if (lastError != null) {
+      throw lastError;
     }
   }
 
   Future<void> _confirmSave() async {
     final currentProduct = _products[_currentIndex];
     final selectedDate = _selectedDates[currentProduct.ticketLineId];
+    final selectedAlertDate = _selectedAlertDates[currentProduct.ticketLineId];
+    final selectedLocId = _selectedLocations[currentProduct.ticketLineId];
     
     if (selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -80,13 +200,29 @@ class _ExpirationDateManagerScreenState extends State<ExpirationDateManagerScree
 
     setState(() => _isSaving = true);
     try {
-      // Asignar fecha usando el nuevo endpoint
+      final expirationDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+
+      // El endpoint del ticket garantiza la asignación de caducidad por línea.
       await _ticketService.assignExpirationDates(widget.ticketId, [
         {
           'ticketLineId': currentProduct.ticketLineId,
-          'expirationDate': DateFormat('yyyy-MM-dd').format(selectedDate),
+          'expirationDate': expirationDate,
         }
       ]);
+
+      // Refuerzo: persistimos alerta/ubicación directamente sobre el lote creado.
+      if (currentProduct.newInventoryItemId.isNotEmpty) {
+        await _updateInventoryItemWithRetry(
+          currentProduct.newInventoryItemId,
+          {
+            'expirationDate': expirationDate,
+            if (selectedAlertDate != null)
+              'alertDate': DateFormat('yyyy-MM-dd').format(selectedAlertDate),
+            if (selectedLocId != null && selectedLocId.isNotEmpty)
+              'locationId': selectedLocId,
+          },
+        );
+      }
       
       if (_currentIndex < _products.length - 1) {
         setState(() {
@@ -94,17 +230,17 @@ class _ExpirationDateManagerScreenState extends State<ExpirationDateManagerScree
           _isSaving = false;
         });
       } else {
+        if (!mounted) return;
         Navigator.pop(context);
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
-  void _skip() {
+  void _skipProduct() {
     if (_currentIndex < _products.length - 1) {
       setState(() {
         _currentIndex++;
@@ -114,139 +250,89 @@ class _ExpirationDateManagerScreenState extends State<ExpirationDateManagerScree
     }
   }
 
-  Widget _buildProductCard(ProductToManage product) {
-    final String productName = product.productName;
-    final List<ExistingLot> existingLots = product.existingLots;
-    final double quantity = product.newQuantity;
-    final selectedDate = _selectedDates[product.ticketLineId];
-
-    return Column(
-      children: [
-        Text(
-          productName,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Chip(
-          label: Text('Nueva Cantidad: $quantity'),
-          backgroundColor: Colors.blue.shade50,
-        ),
-        const SizedBox(height: 24),
-        
-        if (existingLots.isNotEmpty) ...[
-          const Text('Lotes existentes en inventario:', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 8),
-          ...existingLots.map((lot) => Card(
-            color: Colors.orange.shade50,
-            child: ListTile(
-              leading: const Icon(Icons.history, color: Colors.orange),
-              title: Text('Caduca el: ${lot.expirationDate}'),
-              subtitle: Text('Cantidad actual: ${lot.quantity}'),
-            ),
-          )),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Icon(Icons.add_circle_outline, color: Colors.blue),
-          ),
-        ],
-        
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: selectedDate != null ? Colors.green : Colors.blue, width: 2),
-          ),
-          child: InkWell(
-            onTap: _pickDate,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              width: double.infinity,
-              child: Column(
-                children: [
-                  const Text('ASIGNAR FECHA AL NUEVO LOTE', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Text(
-                    selectedDate == null 
-                        ? 'Toca para seleccionar' 
-                        : DateFormat('dd/MM/yyyy').format(selectedDate),
-                    style: TextStyle(
-                      fontSize: 22, 
-                      color: selectedDate == null ? Colors.grey : Colors.green,
-                      fontWeight: FontWeight.bold
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Comparando Inventario')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    final l10n = AppLocalizations.of(context);
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_products.isEmpty) return Scaffold(appBar: AppBar(), body: const Center(child: Text('Todo al día')));
 
-    if (_products.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Todo al día')),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.done_all, size: 80, color: Colors.green),
-              const SizedBox(height: 16),
-              const Text('No hay productos que necesiten fecha.'),
-              const SizedBox(height: 24),
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Volver')),
-            ],
-          ),
-        ),
-      );
-    }
+    final product = _products[_currentIndex];
+    final expDate = _selectedDates[product.ticketLineId];
+    final alertDate = _selectedAlertDates[product.ticketLineId];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Producto ${_currentIndex + 1} de ${_products.length}'),
-      ),
+      appBar: AppBar(title: Text('${l10n.translate('product')} ${_currentIndex + 1}/${_products.length}')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            _buildProductCard(_products[_currentIndex]),
-            const SizedBox(height: 40),
-            if (_isSaving)
-              const CircularProgressIndicator()
-            else
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _skip,
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 50)),
-                      child: const Text('Saltar'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _selectedDates[_products[_currentIndex].ticketLineId] != null ? _confirmSave : null,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 50),
-                        backgroundColor: Colors.green,
-                      ),
-                      child: const Text('GUARDAR LOTE'),
-                    ),
-                  ),
-                ],
+            Text(product.productName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            
+            // Selector de Ubicación (Despensa por defecto)
+            DropdownButtonFormField<String>(
+              initialValue: _selectedLocations[product.ticketLineId],
+              items: _locations.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
+              onChanged: (v) => setState(() => _selectedLocations[product.ticketLineId] = v),
+              decoration: InputDecoration(
+                labelText: l10n.translate('select_location'),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.location_on, color: Colors.green),
               ),
+            ),
+            const SizedBox(height: 20),
+
+            // Botón Fecha Caducidad
+            ListTile(
+              tileColor: Colors.blue.shade50,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              leading: const Icon(Icons.event, color: Colors.blue),
+              title: Text(l10n.expirationDate),
+              subtitle: Text(expDate == null ? l10n.translate('tap_to_select') : DateFormat('dd/MM/yyyy').format(expDate)),
+              trailing: IconButton(
+                icon: const Icon(Icons.mic, color: Colors.blue),
+                onPressed: _showExpiryVoiceInput,
+              ),
+              onTap: _pickExpirationDate,
+            ),
+            const SizedBox(height: 12),
+
+            // Botón Fecha Alerta
+            ListTile(
+              tileColor: Colors.orange.shade50,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              leading: const Icon(Icons.notifications_active, color: Colors.orange),
+              title: Text(l10n.alertDate),
+              subtitle: Text(alertDate == null ? l10n.translate('tap_to_select') : DateFormat('dd/MM/yyyy').format(alertDate)),
+              onTap: _pickAlertDate,
+            ),
+
+            const SizedBox(height: 40),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSaving ? null : _skipProduct,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                      side: const BorderSide(color: Colors.grey),
+                    ),
+                    child: Text(l10n.skip.toUpperCase()),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: expDate != null && !_isSaving ? _confirmSave : null,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                      backgroundColor: Colors.green,
+                    ),
+                    child: Text(l10n.save.toUpperCase()),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

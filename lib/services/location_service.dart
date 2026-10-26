@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'api_client.dart';
 import '../models/location.dart';
 
@@ -32,5 +31,13 @@ class LocationService {
   Future<LocationResponseDto> getByName(String name) async {
     final response = await _apiClient.dio.get('/api/locations/by-name', queryParameters: {'name': name});
     return LocationResponseDto.fromJson(response.data);
+  }
+
+  Future<bool> existsByName(String name) async {
+    final response = await _apiClient.dio.get(
+      '/api/locations/exists',
+      queryParameters: {'name': name},
+    );
+    return response.data as bool;
   }
 }

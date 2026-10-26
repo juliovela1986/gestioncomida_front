@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 
 class LoginWebViewScreen extends StatefulWidget {
   final String initialUrl;
   final Future<String?> Function(String) onRedirect;
 
   const LoginWebViewScreen({
-    Key? key,
+    super.key,
     required this.initialUrl,
     required this.onRedirect,
-  }) : super(key: key);
+  });
 
   @override
   State<LoginWebViewScreen> createState() => _LoginWebViewScreenState();
@@ -52,6 +53,11 @@ class _LoginWebViewScreenState extends State<LoginWebViewScreen> {
           },
         ),
       );
+
+    final platform = _controller.platform;
+    if (platform is AndroidWebViewController) {
+      AndroidWebViewController.enableDebugging(true);
+    }
 
     _initWebView();
   }

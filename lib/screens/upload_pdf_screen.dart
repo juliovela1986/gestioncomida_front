@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
+import '../core/error_utils.dart';
 import '../services/ticket_service.dart';
 import '../models/ticket_processing_result.dart';
 import 'ticket_validation_screen.dart';
@@ -60,13 +61,15 @@ class _UploadPdfScreenState extends State<UploadPdfScreen> {
           final result = TicketProcessingResultDto.fromJson(response.data);
           final ticketId = result.metadata.id;
           
-          // Navegar a validación del ticket
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TicketValidationScreen(ticketId: ticketId),
-            ),
-          );
+           // Navegar a validación del ticket
+           Navigator.pushReplacement(
+             context,
+             MaterialPageRoute(
+               builder: (context) => TicketValidationScreen(
+                 ticketId: ticketId,
+               ),
+             ),
+           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: ${response.statusMessage}')),
@@ -76,19 +79,9 @@ class _UploadPdfScreenState extends State<UploadPdfScreen> {
     } catch (e) {
       print('[UploadPDF] Error: $e');
       if (mounted) {
-        String errorMessage = 'Error al subir PDF';
-        
-        if (e.toString().contains('409')) {
-          errorMessage = 'Este ticket ya fue procesado anteriormente';
-        } else if (e.toString().contains('401')) {
-          errorMessage = 'Sesión expirada. Por favor, inicia sesión de nuevo';
-        } else if (e.toString().contains('415')) {
-          errorMessage = 'Formato de archivo no soportado';
-        }
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(errorMessage),
+            content: Text(userFriendlyError(e, fallback: 'No se pudo subir el PDF. Inténtalo de nuevo.')),
             backgroundColor: Colors.orange,
             duration: const Duration(seconds: 4),
           ),

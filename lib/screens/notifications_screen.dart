@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
+import '../services/notification_refresh_service.dart';
 import '../models/notification.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -13,6 +15,8 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late NotificationService _notificationService;
+  final NotificationRefreshService _notificationRefreshService = NotificationRefreshService.instance;
+  StreamSubscription<void>? _refreshSubscription;
   List<NotificationModel> _notifications = [];
   bool _isLoading = true;
 
@@ -21,6 +25,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     super.initState();
     _notificationService = NotificationService(ApiClient().dio);
     _loadNotifications();
+    _refreshSubscription = _notificationRefreshService.stream.listen((_) {
+      if (mounted) {
+        _loadNotifications();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _refreshSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadNotifications() async {
@@ -45,6 +60,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     try {
       await _notificationService.markAsRead(notification.id);
       await _loadNotifications();
+      _notificationRefreshService.notifyRefreshRequested();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -78,6 +94,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       try {
         await _notificationService.deleteNotification(notification.id);
         await _loadNotifications();
+        _notificationRefreshService.notifyRefreshRequested();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Notificación eliminada')),
@@ -101,6 +118,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Colors.red;
       case 'LOW_STOCK':
         return Colors.amber;
+      case 'COMPARE_READY':
+        return Colors.teal;
+      case 'PRICE_DROP':
+        return Colors.indigo;
       default:
         return Colors.blue;
     }
@@ -114,6 +135,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Icons.error;
       case 'LOW_STOCK':
         return Icons.inventory_2;
+      case 'COMPARE_READY':
+        return Icons.compare_arrows;
+      case 'PRICE_DROP':
+        return Icons.trending_down;
       default:
         return Icons.notifications;
     }
@@ -127,9 +152,45 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return 'Producto caducado';
       case 'LOW_STOCK':
         return 'Stock bajo';
+      case 'COMPARE_READY':
+        return 'Comparativa lista';
+      case 'PRICE_DROP':
+        return 'Bajada de precio';
+      case 'REMINDER':
+        return 'Recordatorio';
       default:
         return 'Notificación';
     }
+  }
+
+  Future<void> _openNotificationDetail(NotificationModel notification) async {
+    if (notification.status != 'READ') {
+      await _markAsRead(notification);
+    }
+    if (!mounted) return;
+
+    if (notification.alertType == 'COMPARE_READY') {
+      Navigator.pushNamed(
+        context,
+        '/shopping-list',
+        arguments: const {'openCompareResults': true},
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_getAlertTitle(notification.alertType)),
+        content: Text(notification.reason?.trim().isNotEmpty == true ? notification.reason! : 'Sin mensaje'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -163,8 +224,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        color: isUnread ? color.withOpacity(0.1) : null,
+                        color: isUnread ? color.withValues(alpha: 0.1) : null,
                         child: ListTile(
+                          onTap: () => _openNotificationDetail(notification),
                           leading: Icon(_getAlertIcon(notification.alertType), color: color, size: 32),
                           title: Text(
                             _getAlertTitle(notification.alertType),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
+import '../core/app_exception.dart';
 import '../screens/login_webview_screen.dart';
 import '../app_config.dart';
 import 'dart:math';
@@ -10,15 +11,27 @@ import 'dart:convert';
 import 'dart:async';
 
 class AuthService {
+  AuthService._internal();
+
+  static final AuthService _instance = AuthService._internal();
+
+  factory AuthService() => _instance;
+
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   
   String? _inMemoryToken;
+  Future<String?>? _refreshFuture;
 
   final String _clientId = 'gestioncomida-mobile';
   final List<String> _scopes = ['openid', 'profile', 'email'];
   final String _redirectUrl = 'com.gestioncomida.app://callback';
-  String get _issuer => AppConfig.keycloakRealm;
   String get _discoveryUrl => AppConfig.discoveryUrl;
+
+  // Getters públicos para registro
+  String get clientId => _clientId;
+  String get redirectUrl => _redirectUrl;
+  String get keycloakUrl => AppConfig.keycloakUrl;
+  String get realmName => AppConfig.keycloakRealm.split('/').last;
 
   String _generateRandomString(int len) {
     final random = Random.secure();
@@ -147,6 +160,44 @@ class AuthService {
     }
   }
 
+  Map<String, dynamic>? _decodeJwtPayload(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      final normalizedPayload = base64Url.normalize(parts[1]);
+      final payloadString = utf8.decode(base64Url.decode(normalizedPayload));
+      return json.decode(payloadString) as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  DateTime? _getTokenExpiration(String token) {
+    final payload = _decodeJwtPayload(token);
+    final exp = payload?['exp'];
+
+    if (exp is int) {
+      return DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
+    }
+
+    if (exp is String) {
+      final parsedExp = int.tryParse(exp);
+      if (parsedExp != null) {
+        return DateTime.fromMillisecondsSinceEpoch(parsedExp * 1000, isUtc: true);
+      }
+    }
+
+    return null;
+  }
+
+  bool _isTokenExpiringSoon(String token, {Duration threshold = const Duration(seconds: 60)}) {
+    final expiration = _getTokenExpiration(token);
+    if (expiration == null) return false;
+
+    return expiration.isBefore(DateTime.now().toUtc().add(threshold));
+  }
+
   Future<String?> getToken() async {
     // Primero intentamos obtener el token de la memoria
     if (_inMemoryToken != null) {
@@ -157,11 +208,49 @@ class AuthService {
     return _inMemoryToken;
   }
 
+  Future<String?> getValidAccessToken() async {
+    final currentToken = await getToken();
+
+    if (currentToken == null) {
+      return null;
+    }
+
+    if (_isTokenExpiringSoon(currentToken)) {
+      return await refreshToken();
+    }
+
+    return currentToken;
+  }
+
   Future<String?> getRefreshToken() async {
     return await _storage.read(key: 'refresh_token');
   }
 
+  Future<bool> restoreSessionIfPossible() async {
+    final token = await getToken();
+    if (token != null && !_isTokenExpiringSoon(token)) {
+      return true;
+    }
+
+    final refreshedToken = await refreshToken();
+    return refreshedToken != null;
+  }
+
   Future<String?> refreshToken() async {
+    if (_refreshFuture != null) {
+      return _refreshFuture;
+    }
+
+    _refreshFuture = _refreshTokenInternal();
+
+    try {
+      return await _refreshFuture;
+    } finally {
+      _refreshFuture = null;
+    }
+  }
+
+  Future<String?> _refreshTokenInternal() async {
     try {
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) return null;
@@ -189,6 +278,13 @@ class AuthService {
         
         print('[Auth] ✅ Token refrescado exitosamente');
         return newToken;
+      }
+    } on DioException catch (e) {
+      print('[Auth] ❌ Error al refrescar token: $e');
+
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        await logout();
+        throw const SessionExpiredException();
       }
     } catch (e) {
       print('[Auth] ❌ Error al refrescar token: $e');

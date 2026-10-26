@@ -3,6 +3,7 @@ import '../models/inventory_item.dart';
 import '../models/location.dart';
 import '../services/inventory_service.dart';
 import '../services/location_service.dart';
+import '../l10n/app_localizations.dart';
 
 class EditInventoryItemScreen extends StatefulWidget {
   final InventoryItemResponseDto item;
@@ -58,6 +59,7 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
 
   Future<void> _saveChanges() async {
     setState(() => _isSaving = true);
+    final l10n = AppLocalizations.of(context);
 
     try {
       final updatedData = {
@@ -72,14 +74,14 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Cambios guardados')),
+          SnackBar(content: Text(l10n.translate('update_success'))),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Error al guardar: $e')),
+          SnackBar(content: Text('${l10n.translate('error_loading', params: {'error': e.toString()})}')),
         );
       }
     } finally {
@@ -100,14 +102,14 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
   Future<void> _selectExpirationDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: DateTime.tryParse(_expirationDateController.text) ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 1000)),
     );
     if (picked != null) {
       setState(() {
         _expirationDateController.text = picked.toIso8601String().split('T')[0];
-        // Calcular automáticamente alertDate = expirationDate - 3 días
+        // Calcular automáticamente alertDate = expirationDate - 3 días si no hay una ya
         final alertDate = picked.subtract(const Duration(days: 3));
         _alertDateController.text = alertDate.toIso8601String().split('T')[0];
       });
@@ -117,9 +119,9 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
   Future<void> _selectAlertDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDate: DateTime.tryParse(_alertDateController.text) ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.tryParse(_expirationDateController.text) ?? DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
       setState(() {
@@ -145,9 +147,11 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Editar Producto'),
+        title: Text(l10n.translate('edit_product')),
         backgroundColor: _getStatusColor(),
       ),
       body: SingleChildScrollView(
@@ -167,14 +171,14 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     if (widget.item.productBrand != null)
-                      Text('Marca: ${widget.item.productBrand}',
+                      Text('${l10n.brand}: ${widget.item.productBrand}',
                           style: TextStyle(color: Colors.grey[600])),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(Icons.circle, size: 12, color: _getStatusColor()),
                         const SizedBox(width: 8),
-                        Text(widget.item.status ?? 'Sin estado'),
+                        Text(widget.item.status ?? ''),
                       ],
                     ),
                   ],
@@ -184,7 +188,7 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
             const SizedBox(height: 16),
 
             // Ubicación
-            const Text('Ubicación', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(l10n.translate('manage_locations'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               value: _selectedLocationId,
@@ -192,7 +196,7 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.location_on),
               ),
-              hint: const Text('Selecciona una ubicación'),
+              hint: Text(l10n.translate('select_location')),
               items: _locations.map((location) {
                 return DropdownMenuItem(
                   value: location.id,
@@ -206,16 +210,16 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
             const SizedBox(height: 16),
 
             // Cantidad
-            const Text('Cantidad', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(l10n.quantity, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: _quantityController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      suffixText: 'unidades',
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      suffixText: l10n.unitsAbbr,
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
@@ -244,23 +248,16 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
                 ),
               ],
             ),
-            if (widget.item.initialQuantity != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'Cantidad inicial: ${widget.item.initialQuantity}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ),
             const SizedBox(height: 16),
 
             // Fecha de caducidad
-            const Text('Fecha de Caducidad', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(l10n.translate('expiration_date'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             TextField(
               controller: _expirationDateController,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.event),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.calendar_today),
                   onPressed: _selectExpirationDate,
@@ -272,10 +269,10 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
             const SizedBox(height: 16),
 
             // Fecha de alerta
-            const Text('Fecha de Alerta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(l10n.translate('alert_date'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
             Text(
-              'Se te notificará en esta fecha',
+              l10n.translate('alert_date_desc'),
               style: TextStyle(color: Colors.grey[600], fontSize: 12),
             ),
             const SizedBox(height: 8),
@@ -283,11 +280,11 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
               controller: _alertDateController,
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.notifications_active),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.calendar_today),
                   onPressed: _selectAlertDate,
                 ),
-                helperText: 'Calculada automáticamente (3 días antes)',
               ),
               readOnly: true,
               onTap: _selectAlertDate,
@@ -295,13 +292,13 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
             const SizedBox(height: 16),
 
             // Notas
-            const Text('Notas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(l10n.translate('notes'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             TextField(
               controller: _notesController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                hintText: 'Añade notas sobre el producto...',
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: l10n.translate('notes_hint'),
               ),
               maxLines: 3,
             ),
@@ -316,7 +313,7 @@ class _EditInventoryItemScreenState extends State<EditInventoryItemScreen> {
               ),
               child: _isSaving
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Guardar Cambios', style: TextStyle(fontSize: 16)),
+                  : Text(l10n.save, style: const TextStyle(fontSize: 16, color: Colors.white)),
             ),
           ],
         ),
