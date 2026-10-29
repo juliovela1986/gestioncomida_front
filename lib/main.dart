@@ -231,7 +231,11 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.restaurant_menu, size: 100, color: Colors.blue),
+              Image.asset(
+                'assets/branding/scanticketfresh-icon-ui.png',
+                height: 120,
+                fit: BoxFit.contain,
+              ),
               const SizedBox(height: 20),
               Text(
                 l10n.appTitle,
