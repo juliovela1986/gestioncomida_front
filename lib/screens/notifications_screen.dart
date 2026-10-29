@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
+import '../core/error_utils.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/notification_refresh_service.dart';
@@ -18,7 +19,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   final NotificationRefreshService _notificationRefreshService = NotificationRefreshService.instance;
   StreamSubscription<void>? _refreshSubscription;
   List<NotificationModel> _notifications = [];
+  final Set<String> _selectedIds = {};
+  bool _selectionMode = false;
   bool _isLoading = true;
+  bool _isBusy = false;
 
   @override
   void initState() {
@@ -44,16 +48,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final notifications = await _notificationService.getUserNotifications();
       setState(() {
         _notifications = notifications;
+        _selectedIds.removeWhere((id) => !_notifications.any((n) => n.id == id));
+        if (_selectedIds.isEmpty) {
+          _selectionMode = false;
+        }
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al cargar notificaciones: $e')),
+          SnackBar(content: Text(userFriendlyError(e, fallback: 'No se pudieron cargar las notificaciones.'))),
         );
       }
     }
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      if (!_selectionMode) {
+        _selectedIds.clear();
+      }
+    });
+  }
+
+  void _toggleSelected(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+      if (_selectedIds.isEmpty) {
+        _selectionMode = false;
+      } else {
+        _selectionMode = true;
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      _selectionMode = true;
+      _selectedIds
+        ..clear()
+        ..addAll(_notifications.map((n) => n.id));
+    });
   }
 
   Future<void> _markAsRead(NotificationModel notification) async {
@@ -64,9 +105,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al marcar como leída: $e')),
+          SnackBar(content: Text(userFriendlyError(e, fallback: 'No se pudo marcar como leída.'))),
         );
       }
+    }
+  }
+
+  Future<void> _markSelectedAsRead() async {
+    if (_selectedIds.isEmpty || _isBusy) return;
+    setState(() => _isBusy = true);
+    try {
+      await _notificationService.markAsReadBatch(_selectedIds.toList());
+      _selectedIds.clear();
+      _selectionMode = false;
+      await _loadNotifications();
+      _notificationRefreshService.notifyRefreshRequested();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notificaciones marcadas como vistas')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(userFriendlyError(e, fallback: 'No se pudieron marcar como vistas.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
     }
   }
 
@@ -103,10 +169,56 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error al eliminar: $e')),
+            SnackBar(content: Text(userFriendlyError(e, fallback: 'No se pudo eliminar la notificación.'))),
           );
         }
       }
+    }
+  }
+
+  Future<void> _deleteSelected() async {
+    if (_selectedIds.isEmpty || _isBusy) return;
+    final count = _selectedIds.length;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar seleccionadas'),
+        content: Text('¿Eliminar $count notificación${count == 1 ? '' : 'es'}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _isBusy = true);
+    try {
+      await _notificationService.deleteBatch(_selectedIds.toList());
+      _selectedIds.clear();
+      _selectionMode = false;
+      await _loadNotifications();
+      _notificationRefreshService.notifyRefreshRequested();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$count eliminada${count == 1 ? '' : 's'}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(userFriendlyError(e, fallback: 'No se pudieron eliminar.'))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
     }
   }
 
@@ -164,6 +276,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _openNotificationDetail(NotificationModel notification) async {
+    if (_selectionMode) {
+      _toggleSelected(notification.id);
+      return;
+    }
+
     if (notification.status != 'READ') {
       await _markAsRead(notification);
     }
@@ -195,10 +312,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSelection = _selectedIds.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notificaciones'),
+        title: Text(_selectionMode ? '${_selectedIds.length} seleccionadas' : 'Notificaciones'),
         backgroundColor: Colors.green,
+        leading: _selectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _toggleSelectionMode,
+                tooltip: 'Cancelar selección',
+              )
+            : null,
+        actions: [
+          if (!_selectionMode && _notifications.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.checklist),
+              tooltip: 'Seleccionar',
+              onPressed: _toggleSelectionMode,
+            ),
+          if (_selectionMode) ...[
+            IconButton(
+              icon: const Icon(Icons.select_all),
+              tooltip: 'Seleccionar todas',
+              onPressed: _selectAll,
+            ),
+            IconButton(
+              icon: const Icon(Icons.done_all),
+              tooltip: 'Marcar como vistas',
+              onPressed: hasSelection && !_isBusy ? _markSelectedAsRead : null,
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Eliminar',
+              onPressed: hasSelection && !_isBusy ? _deleteSelected : null,
+            ),
+          ],
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -221,13 +372,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       final notification = _notifications[index];
                       final isUnread = notification.status != 'READ';
                       final color = _getAlertColor(notification.alertType);
+                      final selected = _selectedIds.contains(notification.id);
 
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        color: isUnread ? color.withValues(alpha: 0.1) : null,
+                        color: selected
+                            ? Colors.green.withValues(alpha: 0.15)
+                            : (isUnread ? color.withValues(alpha: 0.1) : null),
                         child: ListTile(
                           onTap: () => _openNotificationDetail(notification),
-                          leading: Icon(_getAlertIcon(notification.alertType), color: color, size: 32),
+                          onLongPress: () {
+                            setState(() {
+                              _selectionMode = true;
+                              _selectedIds.add(notification.id);
+                            });
+                          },
+                          leading: _selectionMode
+                              ? Checkbox(
+                                  value: selected,
+                                  onChanged: (_) => _toggleSelected(notification.id),
+                                )
+                              : Icon(_getAlertIcon(notification.alertType), color: color, size: 32),
                           title: Text(
                             _getAlertTitle(notification.alertType),
                             style: TextStyle(fontWeight: isUnread ? FontWeight.bold : FontWeight.normal),
@@ -243,24 +408,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               ),
                             ],
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (isUnread)
-                                IconButton(
-                                  icon: const Icon(Icons.check_circle_outline),
-                                  onPressed: () => _markAsRead(notification),
-                                  tooltip: 'Marcar como leída',
-                                )
-                              else
-                                const Icon(Icons.check_circle, color: Colors.grey),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () => _deleteNotification(notification),
-                                tooltip: 'Eliminar',
-                              ),
-                            ],
-                          ),
+                          trailing: _selectionMode
+                              ? null
+                              : Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isUnread)
+                                      IconButton(
+                                        icon: const Icon(Icons.check_circle_outline),
+                                        onPressed: () => _markAsRead(notification),
+                                        tooltip: 'Marcar como leída',
+                                      )
+                                    else
+                                      const Icon(Icons.check_circle, color: Colors.grey),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                      onPressed: () => _deleteNotification(notification),
+                                      tooltip: 'Eliminar',
+                                    ),
+                                  ],
+                                ),
                         ),
                       );
                     },

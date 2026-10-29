@@ -13,7 +13,7 @@ class AppLocalizations {
 
   static final Map<String, Map<String, String>> _localizedValues = {
     'es': {
-      'app_title': 'Gestión Comida',
+      'app_title': 'ScanTicketFresh',
       'app_subtitle': 'Organiza tus alimentos inteligentemente',
       'welcome': '¡Bienvenido!',
       'login': 'Iniciar Sesión',
@@ -232,6 +232,7 @@ class AppLocalizations {
       'price_insights_metrics_supermarkets': 'Supermercados',
       'price_insights_top_increases': 'Mayores subidas',
       'price_insights_top_drops': 'Mayores bajadas',
+      'price_insights_variations_empty': 'Aún no hay suficientes precios para comparar subidas o bajadas. Sube y valida más tickets del mismo producto.',
       'price_insights_tracked_empty': 'Aún no hay productos con histórico suficiente.\nValida y sincroniza algunos tickets para empezar a ver insights.',
       'price_insights_observations_count': '{count} observaciones',
       'price_insights_last_seen': 'Última: {value}',
@@ -265,7 +266,7 @@ class AppLocalizations {
       'price_insights_supermarkets_count': '{count} supermercados',
     },
     'en': {
-      'app_title': 'Food Management',
+      'app_title': 'ScanTicketFresh',
       'app_subtitle': 'Organize your food intelligently',
       'welcome': 'Welcome!',
       'login': 'Sign In',
@@ -484,6 +485,7 @@ class AppLocalizations {
       'price_insights_metrics_supermarkets': 'Supermarkets',
       'price_insights_top_increases': 'Top increases',
       'price_insights_top_drops': 'Top drops',
+      'price_insights_variations_empty': 'Not enough prices yet to compare rises or drops. Upload and validate more receipts for the same products.',
       'price_insights_tracked_empty': 'There are not enough tracked products yet.\nValidate and sync some receipts to start seeing insights.',
       'price_insights_observations_count': '{count} observations',
       'price_insights_last_seen': 'Last: {value}',
@@ -517,7 +519,7 @@ class AppLocalizations {
       'price_insights_supermarkets_count': '{count} supermarkets',
     },
     'ca': {
-      'app_title': 'Gestió Menjar',
+      'app_title': 'ScanTicketFresh',
       'app_subtitle': 'Organitza els teus aliments intel·ligentment',
       'welcome': 'Benvingut!',
       'login': 'Iniciar Sessió',
@@ -736,6 +738,7 @@ class AppLocalizations {
       'price_insights_metrics_supermarkets': 'Supermercats',
       'price_insights_top_increases': 'Majors pujades',
       'price_insights_top_drops': 'Majors baixades',
+      'price_insights_variations_empty': 'Encara no hi ha prou preus per comparar pujades o baixades. Puja i valida més tiquets del mateix producte.',
       'price_insights_tracked_empty': 'Encara no hi ha productes amb històric suficient.\nValida i sincronitza alguns tiquets per veure insights.',
       'price_insights_observations_count': '{count} observacions',
       'price_insights_last_seen': 'Última: {value}',
@@ -769,7 +772,7 @@ class AppLocalizations {
       'price_insights_supermarkets_count': '{count} supermercats',
     },
     'eu': {
-      'app_title': 'Janari Kudeaketa',
+      'app_title': 'ScanTicketFresh',
       'app_subtitle': 'Antolatu zure janaria modu adimentsuan',
       'welcome': 'Ongi etorri!',
       'login': 'Saioa hasi',
@@ -988,6 +991,7 @@ class AppLocalizations {
       'price_insights_metrics_supermarkets': 'Supermerkatuak',
       'price_insights_top_increases': 'Igoera handienak',
       'price_insights_top_drops': 'Jaitsiera handienak',
+      'price_insights_variations_empty': 'Oraindik ez dago nahikoa preziorik igoerak edo jaitsierak konparatzeko. Igo eta balidatu produktu beraren tiket gehiago.',
       'price_insights_tracked_empty': 'Oraindik ez dago nahikoa historiko duen produkturik.\nBalidatu eta sinkronizatu tiket batzuk insights ikusteko.',
       'price_insights_observations_count': '{count} behaketa',
       'price_insights_last_seen': 'Azkena: {value}',
@@ -1021,7 +1025,7 @@ class AppLocalizations {
       'price_insights_supermarkets_count': '{count} supermerkatu',
     },
     'gl': {
-      'app_title': 'Xestión Comida',
+      'app_title': 'ScanTicketFresh',
       'app_subtitle': 'Organiza os teus alimentos intelixentemente',
       'welcome': 'Benvido!',
       'login': 'Iniciar Sesión',
@@ -1240,6 +1244,7 @@ class AppLocalizations {
       'price_insights_metrics_supermarkets': 'Supermercados',
       'price_insights_top_increases': 'Maiores subidas',
       'price_insights_top_drops': 'Maiores baixadas',
+      'price_insights_variations_empty': 'Aínda non hai prezos dabondo para comparar subidas ou baixadas. Sobe e valida máis tickets do mesmo produto.',
       'price_insights_tracked_empty': 'Aínda non hai produtos con histórico suficiente.\nValida e sincroniza algúns tickets para empezar a ver insights.',
       'price_insights_observations_count': '{count} observacións',
       'price_insights_last_seen': 'Última: {value}',

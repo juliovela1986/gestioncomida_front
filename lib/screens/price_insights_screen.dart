@@ -326,7 +326,13 @@ class _PriceInsightsScreenState extends State<PriceInsightsScreen>
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
             ),
             const SizedBox(height: 12),
-            ...overview.topIncreases.map((variation) => _buildVariationRow(variation)),
+            if (overview.topIncreases.isEmpty)
+              Text(
+                l10n.translate('price_insights_variations_empty'),
+                style: TextStyle(fontSize: 13, color: Colors.red.shade700),
+              )
+            else
+              ...overview.topIncreases.map((variation) => _buildVariationRow(variation)),
           ],
         ),
       ),
@@ -347,7 +353,13 @@ class _PriceInsightsScreenState extends State<PriceInsightsScreen>
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
             ),
             const SizedBox(height: 12),
-            ...overview.topDrops.map((variation) => _buildVariationRow(variation)),
+            if (overview.topDrops.isEmpty)
+              Text(
+                l10n.translate('price_insights_variations_empty'),
+                style: TextStyle(fontSize: 13, color: Colors.green.shade800),
+              )
+            else
+              ...overview.topDrops.map((variation) => _buildVariationRow(variation)),
           ],
         ),
       ),

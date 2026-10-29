@@ -33,6 +33,32 @@ class NotificationService {
     await _dio.delete('/api/notifications/$notificationId');
   }
 
+  Future<int> markAsReadBatch(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+    final response = await _dio.put(
+      '/api/notifications/batch/mark-read',
+      data: {'ids': ids},
+    );
+    final data = response.data;
+    if (data is Map && data['updated'] is num) {
+      return (data['updated'] as num).toInt();
+    }
+    return ids.length;
+  }
+
+  Future<int> deleteBatch(List<String> ids) async {
+    if (ids.isEmpty) return 0;
+    final response = await _dio.delete(
+      '/api/notifications/batch',
+      data: {'ids': ids},
+    );
+    final data = response.data;
+    if (data is Map && data['deleted'] is num) {
+      return (data['deleted'] as num).toInt();
+    }
+    return ids.length;
+  }
+
   Future<List<NotificationModel>> getByStatus(String status) async {
     final response = await _dio.get('/api/notifications/by-status/$status');
     final raw = response.data;
