@@ -20,6 +20,7 @@ import 'screens/shopping_list_screen.dart';
 import 'screens/upload_pdf_screen.dart';
 import 'screens/upload_ticket_screen.dart';
 import 'screens/login_webview_screen.dart';
+import 'screens/privacy_webview_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -269,6 +270,21 @@ class _LoginPageState extends State<LoginPage> {
                           child: Text(
                             l10n.translate('no_account_register'),
                             style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PrivacyWebViewScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            l10n.privacyPolicy,
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ),
                       ],

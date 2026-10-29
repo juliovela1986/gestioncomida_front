@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'statistics_screen.dart';
 import 'settings_screen.dart';
 import 'price_insights_screen.dart';
+import 'privacy_webview_screen.dart';
 import '../l10n/app_localizations.dart';
 
 class MoreTab extends StatelessWidget {
@@ -55,6 +56,20 @@ class MoreTab extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          _buildOptionCard(
+            context,
+            icon: Icons.privacy_tip_outlined,
+            title: l10n.privacyPolicy,
+            subtitle: l10n.privacyPolicySubtitle,
+            color: Colors.teal,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyWebViewScreen()),
               );
             },
           ),

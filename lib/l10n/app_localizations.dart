@@ -137,6 +137,8 @@ class AppLocalizations {
       'manual_subtitle': 'Crea un ticket manualmente',
       'stats_subtitle': 'Analiza tu inventario',
       'settings_subtitle': 'Idioma, tema y preferencias',
+      'privacy_policy': 'Política de privacidad',
+      'privacy_policy_subtitle': 'Cómo tratamos tus datos',
       'alerts_pending': '¡Tienes alertas pendientes!',
       'one_notification': 'Tienes 1 notificación sin leer',
       'many_notifications': 'Tienes {count} notificaciones sin leer',
@@ -390,6 +392,8 @@ class AppLocalizations {
       'manual_subtitle': 'Create a receipt manually',
       'stats_subtitle': 'Analyze your inventory',
       'settings_subtitle': 'Language, theme and preferences',
+      'privacy_policy': 'Privacy policy',
+      'privacy_policy_subtitle': 'How we handle your data',
       'alerts_pending': 'You have pending alerts!',
       'one_notification': 'You have 1 unread notification',
       'many_notifications': 'You have {count} unread notifications',
@@ -643,6 +647,8 @@ class AppLocalizations {
       'manual_subtitle': 'Crea un tiquet manualment',
       'stats_subtitle': 'Analitza el teu inventari',
       'settings_subtitle': 'Idioma, tema i preferències',
+      'privacy_policy': 'Política de privacitat',
+      'privacy_policy_subtitle': 'Com tractem les teves dades',
       'alerts_pending': 'Tens alertes pendents!',
       'one_notification': 'Tens 1 notificació sense llegir',
       'many_notifications': 'Tens {count} notificacions sense llegir',
@@ -896,6 +902,8 @@ class AppLocalizations {
       'manual_subtitle': 'Sortu tiketa eskuz',
       'stats_subtitle': 'Aztertu zure inbentarioa',
       'settings_subtitle': 'Hizkuntza, gaia eta hobespenak',
+      'privacy_policy': 'Pribatutasun-politika',
+      'privacy_policy_subtitle': 'Nola tratatzen ditugun zure datuak',
       'alerts_pending': 'Abisuak zain dituzu!',
       'one_notification': 'Irakurri gabeko jakinarazpen 1 duzu',
       'many_notifications': 'Irakurri gabeko {count} jakinarazpen dituzu',
@@ -1149,6 +1157,8 @@ class AppLocalizations {
       'manual_subtitle': 'Crea un ticket manualmente',
       'stats_subtitle': 'Analiza o teu inventario',
       'settings_subtitle': 'Idioma, tema e preferencias',
+      'privacy_policy': 'Política de privacidade',
+      'privacy_policy_subtitle': 'Como tratamos os teus datos',
       'alerts_pending': 'Tes alertas pendentes!',
       'one_notification': 'Tes 1 notificación sen ler',
       'many_notifications': 'Tes {count} notificacións sen ler',
@@ -1319,6 +1329,8 @@ class AppLocalizations {
   String inDays(int days) => translate('in_days', params: {'days': days.toString()});
   String get lotsWithoutDate => translate('lots_without_date');
   String get settings => translate('settings');
+  String get privacyPolicy => translate('privacy_policy');
+  String get privacyPolicySubtitle => translate('privacy_policy_subtitle');
   String get language => translate('language');
   String get theme => translate('theme');
   String get lightMode => translate('light_mode');

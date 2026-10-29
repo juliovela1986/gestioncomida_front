@@ -6,6 +6,7 @@ import '../services/cleanup_preferences_service.dart';
 import '../services/inventory_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/pending_expiration_item.dart';
+import 'privacy_webview_screen.dart';
 
 typedef CleanupPreferencesLoader = Future<CleanupPreferencesResponseDto> Function();
 typedef CleanupPreferencesUpdater = Future<CleanupPreferencesResponseDto> Function(
@@ -194,6 +195,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 prefs.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
               },
             ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: Text(l10n.privacyPolicy),
+            subtitle: Text(l10n.privacyPolicySubtitle),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const PrivacyWebViewScreen()),
+              );
+            },
           ),
           const Divider(),
           Padding(
