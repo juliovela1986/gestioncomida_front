@@ -5,6 +5,7 @@ Esta carpeta centraliza la documentacion activa y el historico del frontend.
 ## Estructura
 
 - `docs/ESTADO_ACTUAL_APP.md`: estado real del frontend, flujos y pendientes.
+- `docs/SHOPPING_LIST_ADD_AUTOCOMPLETE.md`: autocomplete catálogo al añadir a lista ([SCRUM-128](https://juliovela86.atlassian.net/browse/SCRUM-128)).
 - `docs/LOGGING_DEBUG_VS_PRODUCCION.md`: logs debug vs mensajes de usuario en producción (tickets/OCR).
 - `docs/api/api-docs.yaml`: contrato OpenAPI del backend consumido por la app.
 - `docs/setup/`: puesta en marcha y troubleshooting.

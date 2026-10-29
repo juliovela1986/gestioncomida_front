@@ -5,8 +5,10 @@ import 'package:flutter/services.dart';
 
 import '../core/error_utils.dart';
 import '../l10n/app_localizations.dart';
+import '../models/catalog_product.dart';
 import '../models/shopping_list_comparison.dart';
 import '../models/shopping_list_item.dart';
+import '../services/catalog_product_service.dart';
 import '../services/shopping_list_service.dart';
 
 typedef ShoppingListPageLoader = Future<ShoppingListPageDto> Function({
@@ -19,12 +21,17 @@ typedef ShoppingListItemCreator = Future<ShoppingListItemDto> Function(
 typedef ShoppingListItemDeleter = Future<void> Function(String itemId);
 typedef ShoppingListCompareBatchExecutor = Future<ShoppingListComparisonResponseDto>
     Function(CompareBatchRequestDto request);
+typedef CatalogProductNameSearcher = Future<List<CatalogProductResponseDto>> Function(
+  String query,
+);
 
 class ShoppingListScreen extends StatefulWidget {
   final ShoppingListPageLoader? loadPage;
   final ShoppingListItemCreator? createItem;
   final ShoppingListItemDeleter? deleteItem;
   final ShoppingListCompareBatchExecutor? compareBatch;
+  /// Override búsqueda catálogo (tests / inyección). Por defecto API `search/by-name`.
+  final CatalogProductNameSearcher? searchCatalogByName;
   final Duration pollInterval;
   final Duration pollTimeout;
   final int pageSize;
@@ -37,6 +44,7 @@ class ShoppingListScreen extends StatefulWidget {
     this.createItem,
     this.deleteItem,
     this.compareBatch,
+    this.searchCatalogByName,
     this.pollInterval = const Duration(seconds: 3),
     this.pollTimeout = const Duration(seconds: 90),
     this.pageSize = ShoppingListService.defaultPageSize,
@@ -126,58 +134,28 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     }
   }
 
-  Future<void> _addCustomItem() async {
-    final l10n = AppLocalizations.of(context);
-    final nameController = TextEditingController();
-    final quantityController = TextEditingController(text: '1');
+  Future<List<CatalogProductResponseDto>> _searchCatalog(String query) {
+    if (widget.searchCatalogByName != null) {
+      return widget.searchCatalogByName!(query);
+    }
+    return CatalogProductService().searchByName(query);
+  }
 
-    final confirmed = await showDialog<bool>(
+  Future<void> _addCustomItem() async {
+    final result = await showDialog<_AddShoppingListItemResult>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(l10n.translate('add_product')),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: l10n.translate('product_name'),
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: quantityController,
-                decoration: InputDecoration(
-                  labelText: l10n.translate('quantity'),
-                  border: const OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l10n.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l10n.translate('add')),
-            ),
-          ],
-        );
-      },
+      builder: (context) => _AddShoppingListItemDialog(
+        searchCatalog: _searchCatalog,
+      ),
     );
 
-    if (confirmed != true) return;
-    final name = nameController.text.trim();
-    if (name.isEmpty) return;
+    if (result == null || result.name.isEmpty) return;
 
     final request = ShoppingListItemRequestDto(
-      name: name,
-      quantity: double.tryParse(quantityController.text.trim()) ?? 1,
+      name: result.name,
+      quantity: result.quantity,
+      unit: result.unit,
+      catalogProductId: result.catalogProductId,
     );
 
     try {
@@ -995,6 +973,228 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         onPressed: _addCustomItem,
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+class _AddShoppingListItemResult {
+  final String name;
+  final double quantity;
+  final String? unit;
+  final String? catalogProductId;
+
+  const _AddShoppingListItemResult({
+    required this.name,
+    required this.quantity,
+    this.unit,
+    this.catalogProductId,
+  });
+}
+
+/// Diálogo alta lista con autocomplete de catálogo (SCRUM-128).
+class _AddShoppingListItemDialog extends StatefulWidget {
+  final CatalogProductNameSearcher searchCatalog;
+
+  const _AddShoppingListItemDialog({required this.searchCatalog});
+
+  @override
+  State<_AddShoppingListItemDialog> createState() =>
+      _AddShoppingListItemDialogState();
+}
+
+class _AddShoppingListItemDialogState extends State<_AddShoppingListItemDialog> {
+  final _nameController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
+  final _focusNode = FocusNode();
+
+  Timer? _debounce;
+  List<CatalogProductResponseDto> _suggestions = [];
+  bool _searching = false;
+  CatalogProductResponseDto? _selected;
+  String? _searchError;
+
+  static const _minChars = 2;
+  static const _debounceMs = 280;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _nameController.dispose();
+    _quantityController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onNameChanged(String value) {
+    _selected = null;
+    _debounce?.cancel();
+    final q = value.trim();
+    if (q.length < _minChars) {
+      setState(() {
+        _suggestions = [];
+        _searching = false;
+        _searchError = null;
+      });
+      return;
+    }
+    setState(() {
+      _searching = true;
+      _searchError = null;
+    });
+    _debounce = Timer(const Duration(milliseconds: _debounceMs), () async {
+      try {
+        final results = await widget.searchCatalog(q);
+        if (!mounted || _nameController.text.trim() != q) return;
+        setState(() {
+          _suggestions = results.take(12).toList();
+          _searching = false;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _suggestions = [];
+          _searching = false;
+          _searchError = userFriendlyError(e);
+        });
+      }
+    });
+  }
+
+  void _pick(CatalogProductResponseDto product) {
+    setState(() {
+      _selected = product;
+      _nameController.text = product.name;
+      _nameController.selection = TextSelection.collapsed(offset: product.name.length);
+      _suggestions = [];
+      _searching = false;
+    });
+    _focusNode.unfocus();
+  }
+
+  void _submit() {
+    final name = (_selected?.name ?? _nameController.text).trim();
+    if (name.isEmpty) return;
+    Navigator.pop(
+      context,
+      _AddShoppingListItemResult(
+        name: name,
+        quantity: double.tryParse(_quantityController.text.trim()) ?? 1,
+        unit: _selected?.unit,
+        catalogProductId: _selected?.id,
+      ),
+    );
+  }
+
+  String _suggestionLabel(CatalogProductResponseDto p) {
+    final brand = p.brand?.trim();
+    if (brand != null && brand.isNotEmpty) return '${p.name} · $brand';
+    return p.name;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return AlertDialog(
+      title: Text(l10n.translate('add_product')),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _nameController,
+              focusNode: _focusNode,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                labelText: l10n.translate('product_name'),
+                hintText: l10n.translate('catalog_search_hint'),
+                border: const OutlineInputBorder(),
+                suffixIcon: _searching
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : (_selected != null
+                        ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
+                        : const Icon(Icons.search)),
+              ),
+              onChanged: _onNameChanged,
+              onSubmitted: (_) => _submit(),
+            ),
+            if (_searchError != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _searchError!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+            if (_suggestions.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 180),
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _suggestions.length,
+                    itemBuilder: (context, index) {
+                      final p = _suggestions[index];
+                      return ListTile(
+                        dense: true,
+                        title: Text(_suggestionLabel(p)),
+                        onTap: () => _pick(p),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ] else if (!_searching &&
+                _nameController.text.trim().length >= _minChars &&
+                _selected == null &&
+                _searchError == null) ...[
+              const SizedBox(height: 8),
+              Text(
+                l10n.translate('no_products_found'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            TextField(
+              controller: _quantityController,
+              decoration: InputDecoration(
+                labelText: l10n.translate('quantity'),
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: Text(l10n.translate('add')),
+        ),
+      ],
     );
   }
 }

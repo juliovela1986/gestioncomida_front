@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gestioncomida_front/l10n/app_localizations.dart';
+import 'package:gestioncomida_front/models/catalog_product.dart';
 import 'package:gestioncomida_front/models/shopping_list_comparison.dart';
 import 'package:gestioncomida_front/models/shopping_list_item.dart';
 import 'package:gestioncomida_front/screens/shopping_list_screen.dart';
@@ -505,6 +506,64 @@ void main() {
       expect(ranking.first.supermarket, 'Dia');
       expect(ranking.first.totalPrice, 1.5);
       expect(ranking.last.totalPrice, 3); // 2 + 1
+    });
+  });
+
+  group('ShoppingListScreen SCRUM-128 autocomplete', () {
+    testWidgets('sugiere catálogo y envía catalogProductId al añadir', (tester) async {
+      await setPhoneViewport(tester);
+      ShoppingListItemRequestDto? created;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('es')],
+          locale: const Locale('es'),
+          home: ShoppingListScreen(
+            loadPage: ({required page, required size}) async => pageOf([]),
+            searchCatalogByName: (query) async {
+              if (!query.toLowerCase().contains('lec')) return [];
+              return [
+                CatalogProductResponseDto(
+                  id: 'cat-1',
+                  name: 'Leche entera',
+                  brand: 'Hacendado',
+                  unit: 'L',
+                ),
+              ];
+            },
+            createItem: (request) async {
+              created = request;
+              return item('new-1', request.name);
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).first, 'lec');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leche entera · Hacendado'), findsOneWidget);
+      await tester.tap(find.text('Leche entera · Hacendado'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Añadir'));
+      await tester.pumpAndSettle();
+
+      expect(created, isNotNull);
+      expect(created!.name, 'Leche entera');
+      expect(created!.catalogProductId, 'cat-1');
+      expect(created!.unit, 'L');
     });
   });
 }
