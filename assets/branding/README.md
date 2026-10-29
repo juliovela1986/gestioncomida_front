@@ -26,8 +26,8 @@
 
 ## Pendiente técnico
 
-1. ~~Exportar icono 1024×1024~~ → `scanticketfresh-icon-symbol-1024.png` (símbolo centrado, canvas 1024).
-2. Generar mipmaps / AppIcon: `dart run flutter_launcher_icons` (config en `pubspec.yaml`).
+1. ~~Exportar icono launcher~~ → `scanticketfresh-icon-launcher-1024.png` (símbolo ampliado ~92% alto; inset adaptive `0` — evita logo minúsculo en círculo blanco).
+2. Regenerar: `dart run flutter_launcher_icons` (`pubspec.yaml`).
 3. ~~`android:label` + `app_title` l10n → ScanTicketFresh~~ (hecho 2026-10-29).
 4. **No** cambiar `applicationId` sin decisión explícita (rompe updates si ya hay APK amigos).
 
