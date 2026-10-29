@@ -1,50 +1,35 @@
 # Branding — ScanTicketFresh
 
-**Jira:** [SCRUM-142](https://juliovela86.atlassian.net/browse/SCRUM-142)  
-**Actualizado:** 2026-10-28
+**Jira:** [SCRUM-142](https://juliovela86.atlassian.net/browse/SCRUM-142) **Finalizada**  
+**Actualizado:** 2026-10-29
 
 ## Decisión
 
 | Elemento | Valor |
 |----------|--------|
 | Nombre app (Play / UI) | **ScanTicketFresh** |
-| Tagline | DIGITAL FRESHNESS (web / material marketing; no en launcher) |
-| Icono launcher | **Solo símbolo** (ticket + manzana + scan), sin wordmark |
-| Wordmark horizontal | **Web, emails, docs, ficha Play, redes** → `scanticketfresh-logo-horizontal-web.png` |
-| Rediseño UI mockups Gemini | Fuera de alcance (post soft launch) |
+| Tagline | DIGITAL FRESHNESS (marketing; no en launcher) |
+| Icono launcher | Símbolo ticket + manzana + scan, fondo **blanco sólido** (sin damero) |
+| Icono in-app (login/home) | `scanticketfresh-icon-ui.png` (transparente, sin círculo) |
+| Wordmark | `scanticketfresh-logo-horizontal-web.png` |
 
-## Archivos
+## Archivos canónicos
 
-| Fichero | Contenido |
-|---------|-----------|
-| `scanticketfresh-logo-horizontal-web.png` | **Canónico web/marketing:** símbolo + ScanTicketFresh + DIGITAL FRESHNESS |
-| `scanticketfresh-logo-full.png` | Variante anterior rescate Gemini (mismo concepto; preferir horizontal-web) |
-| `scanticketfresh-icon-symbol.png` | **Launcher:** solo símbolo (aún falta 1024×1024 transparente) |
-| `scanticketfresh-proposals-ABCD-gemini.png` | Panel A–D propuestas Gemini (referencia) |
-| `ref-frescura-digital-propuesta-A.png` | Variante “FRESCURA DIGITAL” (no es el nombre elegido) |
-| `ref-alt-viewfinder-REJECTED.png` | Alternativa recibida (viewfinder + ticket 3D) — **descartada**; nos quedamos con el símbolo ticket+manzana |
+| Fichero | Uso |
+|---------|-----|
+| `scanticketfresh-icon-ui.png` | Login / home (Image.asset) |
+| `scanticketfresh-icon-launcher-1024.png` | Fuente `flutter_launcher_icons` (blanco + logo) |
+| `scanticketfresh-icon-symbol-1024.png` | Referencia (puede llevar círculo; **no** usar en UI) |
+| `scanticketfresh-logo-horizontal-web.png` | Web / Play ficha / emails |
 
-## Pendiente técnico
+## Hecho técnico
 
-1. ~~Exportar icono launcher~~ → `scanticketfresh-icon-launcher-1024.png` (símbolo ampliado ~92% alto; inset adaptive `0` — evita logo minúsculo en círculo blanco).
-2. Regenerar: `dart run flutter_launcher_icons` (`pubspec.yaml`).
-3. ~~`android:label` + `app_title` l10n → ScanTicketFresh~~ (hecho 2026-10-29).
-4. **No** cambiar `applicationId` sin decisión explícita (rompe updates si ya hay APK amigos).
+1. Launcher regenerado sin damero (`dart run flutter_launcher_icons`).
+2. UI: sustituido `Icons.restaurant_menu` por `icon-ui.png`.
+3. `android:label` + l10n `app_title` → ScanTicketFresh.
+4. Dominio: `scanticketfresh.com` (reservado / en uso ops).
 
-## Origen
+## Pendiente Play
 
-No estaba en el repo; recuperado de conversación Gemini “Logo Design Proposals…” (2026-10-28).
-
-## Dominios (RDAP 2026-10-28)
-
-Nombre comercial **cerrado: ScanTicketFresh**.
-
-| Dominio | RDAP |
-|---------|------|
-| `scanticketfresh.com` | **Disponible** (404) → **reservar ya** |
-| `scanticketfresh.es` | Disponible (confirmar en registrador .es) |
-| `scanticketfresh.app` | Disponible |
-| `scanticketfresh.net` / `.io` | Disponibles (opcionales) |
-| `digitalfreshness.com` | Ocupado (DNS) |
-
-Prioridad: **`.com`** (+ `.es` si quieres mercado España). Privacy WHOIS on. Existe producto ajeno `scanticket.io`.
+- Publicar política: back `docs/MVP/static/privacy.html` → URL HTTPS (SCRUM-140).
+- No cambiar `applicationId` sin decisión explícita.
