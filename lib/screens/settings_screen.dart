@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../services/account_service.dart';
+import '../services/auth_service.dart';
 import '../services/preferences_service.dart';
 import '../services/cleanup_preferences_service.dart';
+import '../services/fcm_service.dart';
 import '../services/inventory_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/pending_expiration_item.dart';
+import '../core/app_globals.dart';
 import 'privacy_webview_screen.dart';
 
 typedef CleanupPreferencesLoader = Future<CleanupPreferencesResponseDto> Function();
@@ -33,9 +37,12 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final CleanupPreferencesService _cleanupPreferencesService = CleanupPreferencesService();
   final InventoryService _inventoryService = InventoryService();
+  final AccountService _accountService = AccountService();
+  final AuthService _authService = AuthService();
 
   bool _isLoadingCleanup = true;
   bool _isSavingCleanup = false;
+  bool _isDeletingAccount = false;
   String? _cleanupError;
   CleanupPreferencesResponseDto? _cleanupPreferences;
   ExpiredPendingSummaryResponseDto? _summary;
@@ -385,9 +392,70 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ],
+          const Divider(),
+          ListTile(
+            leading: Icon(Icons.delete_forever, color: Colors.red.shade700),
+            title: Text(
+              l10n.translate('delete_account'),
+              style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(l10n.translate('delete_account_subtitle')),
+            enabled: !_isDeletingAccount,
+            onTap: _isDeletingAccount ? null : () => _confirmDeleteAccount(context, l10n),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context, AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.translate('delete_account_confirm_title')),
+        content: Text(l10n.translate('delete_account_confirm_body')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
+            child: Text(l10n.translate('delete_account_confirm_action')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isDeletingAccount = true);
+    try {
+      final result = await _accountService.deleteMyAccount();
+      try {
+        await FCMService(navigatorKey).deleteToken();
+      } catch (_) {
+        // Best-effort: tokens ya pueden haberse borrado en servidor.
+      }
+      await _authService.logout();
+      if (!mounted) return;
+      final message = result.message.isNotEmpty
+          ? result.message
+          : l10n.translate('delete_account_success');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.translate('delete_account_error', params: {'error': e.toString()}),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeletingAccount = false);
+    }
   }
 
   String _getLanguageName(String code, AppLocalizations l10n) {
