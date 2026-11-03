@@ -8,6 +8,8 @@ class CatalogProduct {
   final bool isPerishable;
   final int? shelfLifeDays;
   final DateTime? createdInstant;
+  final String? masterProductId;
+  final String? masterCanonicalName;
 
   CatalogProduct({
     required this.id,
@@ -19,6 +21,8 @@ class CatalogProduct {
     this.isPerishable = false,
     this.shelfLifeDays,
     this.createdInstant,
+    this.masterProductId,
+    this.masterCanonicalName,
   });
 
   factory CatalogProduct.fromJson(Map<String, dynamic> json) {
@@ -32,6 +36,8 @@ class CatalogProduct {
       isPerishable: json['isPerishable'] ?? false,
       shelfLifeDays: json['shelfLifeDays'],
       createdInstant: json['createdInstant'] != null ? DateTime.parse(json['createdInstant']) : null,
+      masterProductId: json['masterProductId']?.toString(),
+      masterCanonicalName: json['masterCanonicalName']?.toString(),
     );
   }
 

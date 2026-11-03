@@ -208,6 +208,19 @@ class AuthService {
     return _inMemoryToken;
   }
 
+  /// Realm role ADMIN en el JWT (pantallas/acciones de administración).
+  Future<bool> isAdmin() async {
+    final token = await getValidAccessToken();
+    if (token == null) return false;
+    final payload = _decodeJwtPayload(token);
+    if (payload == null) return false;
+    final realmAccess = payload['realm_access'];
+    if (realmAccess is! Map) return false;
+    final roles = realmAccess['roles'];
+    if (roles is! List) return false;
+    return roles.map((e) => e.toString().toUpperCase()).contains('ADMIN');
+  }
+
   Future<String?> getValidAccessToken() async {
     final currentToken = await getToken();
 

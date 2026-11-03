@@ -1,0 +1,7 @@
+# Copiar a key.properties (gitignored) tras crear el keystore.
+# Ver: docs/PLAY_RELEASE_SIGNING.md  o  .\create_upload_keystore.ps1
+
+storePassword=CHANGE_ME_STORE
+keyPassword=CHANGE_ME_KEY
+keyAlias=upload
+storeFile=upload-keystore.jks

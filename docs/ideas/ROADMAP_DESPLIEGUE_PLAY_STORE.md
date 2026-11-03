@@ -7,7 +7,9 @@ Definir un plan claro para publicar `gestioncomida_front` en Google Play de form
 - Front Flutter operativo con APK de pruebas generada.
 - Version actual en `pubspec.yaml`: `1.0.1+3`.
 - Configuracion Android en `android/app/build.gradle.kts`.
-- Actualmente release usa firma debug (solo valido para pruebas, no recomendado para publicacion final).
+- `signingConfigs.release` listo si existe `android/key.properties`; sin el fichero, release cae a debug (solo local).
+- Guía: `docs/PLAY_RELEASE_SIGNING.md` · script `android/create_upload_keystore.ps1`.
+- Runbook Console (back repo): `docs/MVP/PLAY_CONSOLE_LAUNCH_RUNBOOK.md`.
 
 ## Entregables del plan
 1. Artefacto de publicacion: AAB firmado en release.
