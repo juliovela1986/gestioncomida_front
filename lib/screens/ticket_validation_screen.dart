@@ -95,6 +95,75 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
     }
   }
 
+  DateTime? _parsePurchaseDatetime(String? raw) {
+    if (raw == null || raw.trim().isEmpty || raw == 'N/A') return null;
+    try {
+      return DateTime.parse(raw).toLocal();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _formatPurchaseDatetime(String? raw) {
+    final parsed = _parsePurchaseDatetime(raw);
+    if (parsed == null) return 'Sin fecha — pulsa para corregir';
+    return DateFormat('dd/MM/yyyy HH:mm').format(parsed);
+  }
+
+  /// LocalDateTime en el PUT (sin Z); no envía líneas → no las toca.
+  String _toApiLocalDateTime(DateTime local) {
+    final y = local.year.toString().padLeft(4, '0');
+    final m = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    final h = local.hour.toString().padLeft(2, '0');
+    final min = local.minute.toString().padLeft(2, '0');
+    final s = local.second.toString().padLeft(2, '0');
+    return '$y-$m-$d'
+        'T$h:$min:$s';
+  }
+
+  Future<void> _editPurchaseDatetime() async {
+    if (_ticket == null || _isSyncing) return;
+
+    final current = _parsePurchaseDatetime(_ticket!.purchaseDatetime) ?? DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: current,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+    );
+    if (time == null || !mounted) return;
+
+    final selected = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    try {
+      setState(() => _isSyncing = true);
+      final updated = await _ticketService.updateTicket(
+        widget.ticketId,
+        {'purchaseDatetime': _toApiLocalDateTime(selected)},
+      );
+      if (!mounted) return;
+      setState(() {
+        _ticket = updated;
+        _isSyncing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fecha de compra actualizada')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSyncing = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(userFriendlyError(e, fallback: 'No se pudo guardar la fecha'))),
+      );
+    }
+  }
+
   double _parseAmount(String? value) => parseTicketAmount(value);
 
   double _calculateGlobalDiscount() {
@@ -468,7 +537,27 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
               children: [
                 Text('Supermercado: ${_displaySupermarketName()}',
                     style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('Fecha: ${_ticket?.purchaseDatetime ?? "N/A"}'),
+                InkWell(
+                  onTap: _editPurchaseDatetime,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Fecha: ${_formatPurchaseDatetime(_ticket?.purchaseDatetime)}',
+                            style: TextStyle(
+                              color: _parsePurchaseDatetime(_ticket?.purchaseDatetime) == null
+                                  ? Colors.orange.shade800
+                                  : null,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.edit_calendar, size: 18, color: Colors.blue.shade700),
+                      ],
+                    ),
+                  ),
+                ),
                 Text('Productos: ${_ticket?.lines.length ?? 0}'),
                 if (globalDiscount > 0 || !_totalsAreConsistent(total, subtotal))
                   Text(
