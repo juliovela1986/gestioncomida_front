@@ -66,6 +66,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Reportar problema'), findsOneWidget);
       expect(find.text('Limpieza de caducados'), findsOneWidget);
       expect(find.text('Frecuencia de recordatorio'), findsOneWidget);
       expect(find.text('Semanal'), findsWidgets);

@@ -139,6 +139,16 @@ class AppLocalizations {
       'settings_subtitle': 'Idioma, tema y preferencias',
       'privacy_policy': 'Política de privacidad',
       'privacy_policy_subtitle': 'Cómo tratamos tus datos',
+      'beta_notice_title': 'Versión en prueba',
+      'beta_notice_body':
+          'ScanTicket Fresh está en prueba. Puede haber fallos. Si algo no va bien (ticket, precios, login…), usa Reportar problema en Ajustes o Más. ¡Gracias por ayudarnos!',
+      'beta_notice_dismiss': 'Entendido',
+      'beta_banner_short':
+          'App en beta: si ves un fallo, cuéntanoslo en Reportar problema.',
+      'report_problem': 'Reportar problema',
+      'report_problem_subtitle': 'Abre un email con la versión de la app',
+      'report_problem_no_mail_app':
+          'No hay app de correo. Escribe a scanticketfresh@gmail.com',
       'delete_account': 'Eliminar cuenta',
       'delete_account_subtitle': 'Borra tus datos y cierra la cuenta (Play)',
       'delete_account_confirm_title': '¿Eliminar cuenta?',
@@ -402,6 +412,16 @@ class AppLocalizations {
       'settings_subtitle': 'Language, theme and preferences',
       'privacy_policy': 'Privacy policy',
       'privacy_policy_subtitle': 'How we handle your data',
+      'beta_notice_title': 'Beta version',
+      'beta_notice_body':
+          'ScanTicket Fresh is in beta. Things may break. If something goes wrong (ticket, prices, login…), use Report a problem in Settings or More. Thanks for helping!',
+      'beta_notice_dismiss': 'Got it',
+      'beta_banner_short':
+          'Beta app: if you spot a bug, tell us via Report a problem.',
+      'report_problem': 'Report a problem',
+      'report_problem_subtitle': 'Opens email with the app version',
+      'report_problem_no_mail_app':
+          'No mail app found. Write to scanticketfresh@gmail.com',
       'delete_account': 'Delete account',
       'delete_account_subtitle': 'Erase your data and close the account (Play)',
       'delete_account_confirm_title': 'Delete account?',
@@ -665,6 +685,16 @@ class AppLocalizations {
       'settings_subtitle': 'Idioma, tema i preferències',
       'privacy_policy': 'Política de privacitat',
       'privacy_policy_subtitle': 'Com tractem les teves dades',
+      'beta_notice_title': 'Versió de prova',
+      'beta_notice_body':
+          'ScanTicket Fresh està en prova. Pot haver-hi errors. Si alguna cosa no va bé (tiquet, preus, login…), usa Reportar problema a Ajustaments o Més. Gràcies per ajudar-nos!',
+      'beta_notice_dismiss': 'Entesos',
+      'beta_banner_short':
+          'App en beta: si veus un error, digues-nos-ho a Reportar problema.',
+      'report_problem': 'Reportar problema',
+      'report_problem_subtitle': 'Obre un correu amb la versió de l\'app',
+      'report_problem_no_mail_app':
+          'No hi ha app de correu. Escriu a scanticketfresh@gmail.com',
       'delete_account': 'Eliminar compte',
       'delete_account_subtitle': 'Esborra les teves dades i tanca el compte (Play)',
       'delete_account_confirm_title': 'Eliminar el compte?',
@@ -928,6 +958,16 @@ class AppLocalizations {
       'settings_subtitle': 'Hizkuntza, gaia eta hobespenak',
       'privacy_policy': 'Pribatutasun-politika',
       'privacy_policy_subtitle': 'Nola tratatzen ditugun zure datuak',
+      'beta_notice_title': 'Proba bertsioa',
+      'beta_notice_body':
+          'ScanTicket Fresh proba fasean dago. Akatsak egon daitezke. Zerbait gaizki badoa (txartela, prezioak, saioa…), erabili Arazoa salatu Ezarpenetan edo Gehiago atalean. Eskerrik asko!',
+      'beta_notice_dismiss': 'Ulertuta',
+      'beta_banner_short':
+          'Beta app: akatsik ikusten baduzu, esan iezaguzu Arazoa salatu bidez.',
+      'report_problem': 'Arazoa salatu',
+      'report_problem_subtitle': 'Posta ireki app bertsioarekin',
+      'report_problem_no_mail_app':
+          'Ez dago posta app-ik. Idatzi scanticketfresh@gmail.com helbidera',
       'delete_account': 'Kontua ezabatu',
       'delete_account_subtitle': 'Datuak ezabatu eta kontua itxi (Play)',
       'delete_account_confirm_title': 'Kontua ezabatu?',
@@ -1191,6 +1231,16 @@ class AppLocalizations {
       'settings_subtitle': 'Idioma, tema e preferencias',
       'privacy_policy': 'Política de privacidade',
       'privacy_policy_subtitle': 'Como tratamos os teus datos',
+      'beta_notice_title': 'Versión de proba',
+      'beta_notice_body':
+          'ScanTicket Fresh está en proba. Pode haber fallos. Se algo non vai ben (ticket, prezos, login…), usa Reportar problema en Axustes ou Máis. Grazas por axudarnos!',
+      'beta_notice_dismiss': 'Entendido',
+      'beta_banner_short':
+          'App en beta: se ves un fallo, cóntanolo en Reportar problema.',
+      'report_problem': 'Reportar problema',
+      'report_problem_subtitle': 'Abre un correo coa versión da app',
+      'report_problem_no_mail_app':
+          'Non hai app de correo. Escribe a scanticketfresh@gmail.com',
       'delete_account': 'Eliminar conta',
       'delete_account_subtitle': 'Borra os teus datos e pecha a conta (Play)',
       'delete_account_confirm_title': 'Eliminar a conta?',

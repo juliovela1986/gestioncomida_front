@@ -10,6 +10,7 @@ import '../services/inventory_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/pending_expiration_item.dart';
 import '../core/app_globals.dart';
+import '../services/feedback_service.dart';
 import 'privacy_webview_screen.dart';
 
 typedef CleanupPreferencesLoader = Future<CleanupPreferencesResponseDto> Function();
@@ -39,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final InventoryService _inventoryService = InventoryService();
   final AccountService _accountService = AccountService();
   final AuthService _authService = AuthService();
+  final FeedbackService _feedbackService = FeedbackService();
 
   bool _isLoadingCleanup = true;
   bool _isSavingCleanup = false;
@@ -215,6 +217,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 MaterialPageRoute(builder: (_) => const PrivacyWebViewScreen()),
               );
             },
+          ),
+          ListTile(
+            leading: const Icon(Icons.bug_report_outlined),
+            title: Text(l10n.translate('report_problem')),
+            subtitle: Text(l10n.translate('report_problem_subtitle')),
+            trailing: const Icon(Icons.email_outlined, size: 18),
+            onTap: () => _openReportProblem(l10n),
           ),
           const Divider(),
           Padding(
@@ -406,6 +415,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _openReportProblem(AppLocalizations l10n) async {
+    final opened = await _feedbackService.openReportProblem();
+    if (!mounted) return;
+    if (!opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.translate('report_problem_no_mail_app'))),
+      );
+    }
   }
 
   Future<void> _confirmDeleteAccount(BuildContext context, AppLocalizations l10n) async {

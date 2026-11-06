@@ -4,6 +4,7 @@ import 'settings_screen.dart';
 import 'price_insights_screen.dart';
 import 'privacy_webview_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../services/feedback_service.dart';
 
 class MoreTab extends StatelessWidget {
   const MoreTab({super.key});
@@ -18,6 +19,43 @@ class MoreTab extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card(
+            color: Colors.amber.shade50,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.science_outlined, color: Colors.amber.shade800),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      l10n.translate('beta_banner_short'),
+                      style: TextStyle(color: Colors.amber.shade900, height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildOptionCard(
+            context,
+            icon: Icons.bug_report_outlined,
+            title: l10n.translate('report_problem'),
+            subtitle: l10n.translate('report_problem_subtitle'),
+            color: Colors.deepOrange,
+            onTap: () async {
+              final opened = await FeedbackService().openReportProblem();
+              if (!context.mounted) return;
+              if (!opened) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l10n.translate('report_problem_no_mail_app'))),
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 16),
           _buildOptionCard(
             context,
             icon: Icons.bar_chart,

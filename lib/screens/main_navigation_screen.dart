@@ -8,6 +8,7 @@ import 'inventory_tab.dart'; // Volvemos a usar la pestaña de menú para Invent
 import 'tickets_history_screen.dart';
 import 'shopping_tab.dart';
 import 'more_tab.dart';
+import '../widgets/beta_notice_helper.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -27,6 +28,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) maybeShowBetaNotice(context);
+    });
   }
 
   @override
