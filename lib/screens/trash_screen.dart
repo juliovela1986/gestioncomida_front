@@ -366,16 +366,19 @@ class _TrashScreenState extends State<TrashScreen> {
                                   Text(item.status),
                                 ],
                               ),
-                              trailing: _isSelectionMode
-                                  ? Checkbox(
-                                      value: isSelected,
-                                      onChanged: _isApplyingAction ? null : (_) => _toggleSelection(item.id),
-                                    )
-                                  : null,
-                              onTap: _isSelectionMode
-                                  ? (_isApplyingAction ? null : () => _toggleSelection(item.id))
-                                  : null,
-                              onLongPress: _isApplyingAction ? null : () => _toggleSelection(item.id),
+                              trailing: Checkbox(
+                                value: isSelected,
+                                onChanged: _isApplyingAction
+                                    ? null
+                                    : (_) => _toggleSelection(item.id),
+                              ),
+                              // Tap/clic selecciona (emulador PC + móvil). Antes solo longPress.
+                              onTap: _isApplyingAction
+                                  ? null
+                                  : () => _toggleSelection(item.id),
+                              onLongPress: _isApplyingAction
+                                  ? null
+                                  : () => _toggleSelection(item.id),
                             ),
                           );
                         },

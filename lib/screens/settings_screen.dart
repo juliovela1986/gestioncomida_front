@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/account_service.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import '../services/preferences_service.dart';
 import '../services/cleanup_preferences_service.dart';
 import '../services/fcm_service.dart';
@@ -41,10 +42,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final AccountService _accountService = AccountService();
   final AuthService _authService = AuthService();
   final FeedbackService _feedbackService = FeedbackService();
+  final BiometricService _biometricService = BiometricService();
 
   bool _isLoadingCleanup = true;
   bool _isSavingCleanup = false;
   bool _isDeletingAccount = false;
+  bool _biometricAvailable = false;
   String? _cleanupError;
   CleanupPreferencesResponseDto? _cleanupPreferences;
   ExpiredPendingSummaryResponseDto? _summary;
@@ -53,6 +56,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadCleanupData();
+    _loadBiometricAvailability();
+  }
+
+  Future<void> _loadBiometricAvailability() async {
+    final available = await _biometricService.canAuthenticate();
+    if (!mounted) return;
+    setState(() => _biometricAvailable = available);
+  }
+
+  Future<void> _onBiometricToggle(PreferencesService prefs, AppLocalizations l10n, bool enabled) async {
+    if (enabled) {
+      if (!_biometricAvailable) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.translate('biometric_not_available'))),
+        );
+        return;
+      }
+      final ok = await _biometricService.authenticate(
+        reason: l10n.translate('biometric_unlock_reason'),
+      );
+      if (!ok) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.translate('biometric_failed'))),
+        );
+        return;
+      }
+    }
+    await prefs.setBiometricUnlockEnabled(enabled);
   }
 
   Future<void> _loadCleanupData() async {
@@ -203,6 +236,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (value) {
                 prefs.setThemeMode(value ? ThemeMode.dark : ThemeMode.light);
               },
+            ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.fingerprint),
+            title: Text(l10n.translate('biometric_settings_title')),
+            subtitle: Text(
+              _biometricAvailable
+                  ? l10n.translate('biometric_settings_subtitle')
+                  : l10n.translate('biometric_not_available'),
+            ),
+            trailing: Switch(
+              value: prefs.biometricUnlockEnabled && _biometricAvailable,
+              onChanged: _biometricAvailable
+                  ? (value) => _onBiometricToggle(prefs, l10n, value)
+                  : null,
             ),
           ),
           const Divider(),

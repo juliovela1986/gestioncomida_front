@@ -8,6 +8,7 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'dart:async';
 import 'core/app_globals.dart';
 import 'services/auth_service.dart';
+import 'services/biometric_service.dart';
 import 'services/fcm_service.dart';
 import 'services/preferences_service.dart';
 import 'l10n/app_localizations.dart';
@@ -111,8 +112,10 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
+  final BiometricService _biometricService = BiometricService();
   late final FCMService _fcmService;
   bool _isLoading = false;
+  bool _canUnlockWithBiometrics = false;
   StreamSubscription? _intentDataStreamSubscription;
 
   @override
@@ -120,7 +123,10 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
     _fcmService = FCMService(navigatorKey);
     _listenForSharedFiles();
-    _restoreSession();
+    // Tras el primer frame: Provider / l10n ya están disponibles (SCRUM-169).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _restoreSession();
+    });
   }
 
   @override
@@ -161,16 +167,69 @@ class _LoginPageState extends State<LoginPage> {
 
     final token = await _authService.login(context);
 
-    if (token != null && mounted) {
+    if (!mounted) return;
+
+    if (token != null) {
       await _fcmService.initialize();
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
     } else {
       setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).translate('auth_cancelled'))),
-        );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).translate('auth_cancelled'))),
+      );
+    }
+  }
+
+  Future<void> _refreshBiometricUnlockAvailability() async {
+    final refreshToken = await _authService.getRefreshToken();
+    final canBio = await _biometricService.canAuthenticate();
+    if (!mounted) return;
+    setState(() {
+      _canUnlockWithBiometrics = refreshToken != null && canBio;
+    });
+  }
+
+  /// SCRUM-169: biometría local → refresh Keycloak (sin guardar contraseña).
+  Future<bool> _unlockWithBiometricsIfNeeded({required bool forcePrompt}) async {
+    final prefs = Provider.of<PreferencesService>(context, listen: false);
+    final reason = AppLocalizations.of(context).translate('biometric_unlock_reason');
+    final refreshToken = await _authService.getRefreshToken();
+    if (refreshToken == null) return false;
+
+    final canBio = await _biometricService.canAuthenticate();
+    final shouldPrompt = forcePrompt || (prefs.biometricUnlockEnabled && canBio);
+
+    if (shouldPrompt && canBio) {
+      final ok = await _biometricService.authenticate(reason: reason);
+      if (!ok) return false;
+    } else if (forcePrompt && !canBio) {
+      return false;
+    }
+
+    return _authService.restoreSessionIfPossible();
+  }
+
+  Future<void> _enterWithBiometrics() async {
+    setState(() => _isLoading = true);
+    try {
+      final unlocked = await _unlockWithBiometricsIfNeeded(forcePrompt: true);
+      if (!mounted) return;
+      if (unlocked) {
+        await _fcmService.initialize();
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+        return;
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).translate('biometric_failed'))),
+      );
+    } catch (_) {
+      // Quedamos en login.
+    }
+    if (mounted) {
+      setState(() => _isLoading = false);
+      await _refreshBiometricUnlockAvailability();
     }
   }
 
@@ -178,6 +237,31 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
 
     try {
+      final prefs = Provider.of<PreferencesService>(context, listen: false);
+      final reason = AppLocalizations.of(context).translate('biometric_unlock_reason');
+
+      final refreshToken = await _authService.getRefreshToken();
+      if (refreshToken == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      final canBio = await _biometricService.canAuthenticate();
+
+      // Si biometría está activa y disponible, pedimos huella/Face ID antes del refresh.
+      if (prefs.biometricUnlockEnabled && canBio) {
+        final ok = await _biometricService.authenticate(reason: reason);
+        if (!ok) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _canUnlockWithBiometrics = true;
+            });
+          }
+          return;
+        }
+      }
+
       final hasSession = await _authService.restoreSessionIfPossible();
 
       if (!mounted) return;
@@ -195,6 +279,7 @@ class _LoginPageState extends State<LoginPage> {
 
     if (mounted) {
       setState(() => _isLoading = false);
+      await _refreshBiometricUnlockAvailability();
     }
   }
 
@@ -253,6 +338,21 @@ class _LoginPageState extends State<LoginPage> {
                   ? const CircularProgressIndicator()
                   : Column(
                       children: [
+                        if (_canUnlockWithBiometrics) ...[
+                          ElevatedButton.icon(
+                            onPressed: _enterWithBiometrics,
+                            icon: const Icon(Icons.fingerprint),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 40, vertical: 15),
+                            ),
+                            label: Text(
+                              l10n.translate('biometric_unlock'),
+                              style: const TextStyle(fontSize: 18),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
                         ElevatedButton(
                           onPressed: _login,
                           style: ElevatedButton.styleFrom(

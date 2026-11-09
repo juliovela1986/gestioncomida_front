@@ -41,21 +41,55 @@ class _ProductLotsScreenState extends State<ProductLotsScreen> {
     }
   }
 
-  Future<void> _refreshData() async {
+  bool _isSameProduct(GroupedInventoryResponse other) {
+    final id = _currentProduct.catalogProductId;
+    if (id != null && id.isNotEmpty && other.catalogProductId != null) {
+      return other.catalogProductId == id;
+    }
+    return other.productName == _currentProduct.productName &&
+        other.productBrand == _currentProduct.productBrand;
+  }
+
+  GroupedInventoryResponse _emptyProduct() {
+    return GroupedInventoryResponse(
+      catalogProductId: _currentProduct.catalogProductId,
+      productName: _currentProduct.productName,
+      productBrand: _currentProduct.productBrand,
+      totalQuantity: 0,
+      lotCount: 0,
+      nextExpirationDate: null,
+      lots: const [],
+    );
+  }
+
+  Future<void> _refreshData({bool popIfNoLots = false}) async {
     if (!mounted) return;
     setState(() => _isRefreshing = true);
     try {
       final updatedInventory = await _inventoryService.getGroupedInventory();
-      final updatedProduct = updatedInventory.firstWhere(
-        (p) => p.productName == _currentProduct.productName && p.productBrand == _currentProduct.productBrand,
-        orElse: () => _currentProduct,
-      );
-      if (mounted) {
+      GroupedInventoryResponse? updatedProduct;
+      for (final p in updatedInventory) {
+        if (_isSameProduct(p)) {
+          updatedProduct = p;
+          break;
+        }
+      }
+      if (!mounted) return;
+      final resolved = updatedProduct;
+      if (resolved == null || resolved.lots.isEmpty) {
         setState(() {
-          _currentProduct = updatedProduct;
+          _currentProduct = _emptyProduct();
           _isRefreshing = false;
         });
+        if (popIfNoLots && mounted) {
+          Navigator.of(context).pop(true);
+        }
+        return;
       }
+      setState(() {
+        _currentProduct = resolved;
+        _isRefreshing = false;
+      });
     } catch (e) {
       if (mounted) setState(() => _isRefreshing = false);
     }
@@ -168,7 +202,7 @@ class _ProductLotsScreenState extends State<ProductLotsScreen> {
     final newLocId = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(l10n.translate('manage_locations')),
+        title: Text(l10n.translate('change_lot_location')),
         content: DropdownButtonFormField<String>(
           items: _locations.map((l) => DropdownMenuItem(value: l.id, child: Text(l.name))).toList(),
           onChanged: (v) => selectedLocId = v,
@@ -208,9 +242,34 @@ class _ProductLotsScreenState extends State<ProductLotsScreen> {
     if (confirm == true) {
       try {
         await _inventoryService.deleteItem(lot.inventoryItemId);
-        _refreshData();
+        if (!mounted) return;
+        // Quitar el lote de inmediato para que la UI no se quede con el estado viejo
+        // si el GET agrupado aún no lo refleja o el producto ya no viene en la lista.
+        setState(() {
+          final remaining = _currentProduct.lots
+              .where((l) => l.inventoryItemId != lot.inventoryItemId)
+              .toList();
+          _currentProduct = GroupedInventoryResponse(
+            catalogProductId: _currentProduct.catalogProductId,
+            productName: _currentProduct.productName,
+            productBrand: _currentProduct.productBrand,
+            totalQuantity: remaining.fold<double>(0, (sum, l) => sum + l.quantity),
+            lotCount: remaining.length,
+            nextExpirationDate: remaining
+                .map((l) => l.expirationDate)
+                .whereType<String>()
+                .fold<String?>(null, (best, d) {
+                  if (best == null) return d;
+                  return d.compareTo(best) < 0 ? d : best;
+                }),
+            lots: remaining,
+          );
+        });
+        await _refreshData(popIfNoLots: true);
       } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
       }
     }
   }
@@ -335,7 +394,7 @@ class _ProductLotsScreenState extends State<ProductLotsScreen> {
                             children: [
                               const Icon(Icons.location_on, size: 20, color: Colors.green),
                               const SizedBox(width: 8),
-                              Text(l10n.translate('manage_locations'), style: const TextStyle(color: Colors.green)),
+                              Text(l10n.translate('change_lot_location'), style: const TextStyle(color: Colors.green)),
                             ],
                           ),
                         ),

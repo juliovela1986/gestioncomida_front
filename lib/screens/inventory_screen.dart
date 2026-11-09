@@ -348,7 +348,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                       builder: (_) => ProductLotsScreen(product: product),
                                     ),
                                   );
-                                  _loadInventory();
+                                  if (mounted) {
+                                    await _loadInventory();
+                                  }
                                 },
                               ),
                             );
