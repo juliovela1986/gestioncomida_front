@@ -18,6 +18,7 @@ class AppLocalizations {
       'welcome': '¡Bienvenido!',
       'login': 'Iniciar Sesión',
       'logout': 'Cerrar Sesión',
+      'logout_confirm': '¿Estás seguro de que quieres cerrar sesión?',
       'auth_cancelled': 'Autenticación cancelada',
       'biometric_unlock': 'Entrar con biometría',
       'biometric_unlock_reason': 'Desbloquea ScanTicketFresh',
@@ -312,6 +313,7 @@ class AppLocalizations {
       'welcome': 'Welcome!',
       'login': 'Sign In',
       'logout': 'Sign Out',
+      'logout_confirm': 'Are you sure you want to sign out?',
       'auth_cancelled': 'Authentication cancelled',
       'biometric_unlock': 'Unlock with biometrics',
       'biometric_unlock_reason': 'Unlock ScanTicketFresh',
@@ -606,6 +608,7 @@ class AppLocalizations {
       'welcome': 'Benvingut!',
       'login': 'Iniciar Sessió',
       'logout': 'Tancar Sessió',
+      'logout_confirm': 'Estàs segur que vols tancar la sessió?',
       'auth_cancelled': 'Autenticació cancel·lada',
       'biometric_unlock': 'Entrar amb biometria',
       'biometric_unlock_reason': 'Desbloqueja ScanTicketFresh',
@@ -900,6 +903,7 @@ class AppLocalizations {
       'welcome': 'Ongi etorri!',
       'login': 'Saioa hasi',
       'logout': 'Saioa itxi',
+      'logout_confirm': 'Ziur zaude saioa itxi nahi duzula?',
       'auth_cancelled': 'Autentifikazioa bertan behera utzi da',
       'biometric_unlock': 'Sartu biometriarekin',
       'biometric_unlock_reason': 'Desblokeatu ScanTicketFresh',
@@ -1194,6 +1198,7 @@ class AppLocalizations {
       'welcome': 'Benvido!',
       'login': 'Iniciar Sesión',
       'logout': 'Pechar Sesión',
+      'logout_confirm': 'Seguro que queres pechar a sesión?',
       'auth_cancelled': 'Autenticación cancelada',
       'biometric_unlock': 'Entrar con biometría',
       'biometric_unlock_reason': 'Desbloquea ScanTicketFresh',
@@ -1499,6 +1504,7 @@ class AppLocalizations {
   String get welcome => translate('welcome');
   String get login => translate('login');
   String get logout => translate('logout');
+  String get logoutConfirm => translate('logout_confirm');
   String get authCancelled => translate('auth_cancelled');
   String get registrationCompleted => translate('registration_completed');
   String get noAccountRegister => translate('no_account_register');

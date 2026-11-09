@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../core/app_globals.dart';
 import 'api_client.dart';
+import 'notification_navigation.dart';
 import 'notification_refresh_service.dart';
 
 class FCMService {
@@ -116,35 +117,27 @@ class FCMService {
     });
   }
 
-  /// Manejar mensaje recibido
+  /// Manejar mensaje recibido (SCRUM-174: deep link al producto si hay inventoryItemId)
   void _handleMessage(RemoteMessage message) {
     final data = message.data;
-    
-    if (data.containsKey('type')) {
-      switch (data['type']) {
-        case 'EXPIRATION_WARNING':
-          print('[FCM] 🔔 Navegando a productos caducados');
-          _navigateToExpiredProducts();
-          break;
-        case 'LOW_STOCK':
-          print('[FCM] 🔔 Navegando a inventario');
-          _navigateToInventory();
-          break;
-        case 'COMPARE_READY':
-          print('[FCM] 🔔 Navegando a lista compra (comparativa lista)');
-          _navigateToShoppingListCompare();
-          break;
-        case 'PRICE_DROP':
-          print('[FCM] 🔔 Navegando a notificaciones (PRICE_DROP)');
-          _navigateToNotifications();
-          break;
-        default:
-          print('[FCM] 🔔 Navegando a notificaciones');
-          _navigateToNotifications();
-      }
-    } else {
+    final type = data['type']?.toString();
+    if (type == null || type.isEmpty) {
       _navigateToNotifications();
+      return;
     }
+
+    print('[FCM] 🔔 Deep link type=$type item=${data['inventoryItemId']} screen=${data['screen']}');
+    NotificationNavigation.open(
+      context: navigatorKey.currentContext,
+      alertType: type,
+      inventoryItemId: data['inventoryItemId']?.toString(),
+      pushNamed: (route, {arguments}) => _pushNamedWithRetry(route, arguments: arguments),
+    ).then((_) {
+      Future.delayed(
+        const Duration(milliseconds: 250),
+        _notificationRefreshService.notifyRefreshRequested,
+      );
+    });
   }
 
   void _showCompareReadyForegroundSnack() {

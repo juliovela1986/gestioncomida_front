@@ -5,6 +5,7 @@ import '../core/error_utils.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/notification_refresh_service.dart';
+import '../services/notification_navigation.dart';
 import '../models/notification.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -225,10 +226,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Color _getAlertColor(String alertType) {
     switch (alertType) {
       case 'EXPIRATION_WARNING':
+      case 'EXPIRING_TOMORROW':
+      case 'WASTE_RISK_WEEK':
         return Colors.orange;
       case 'EXPIRED':
         return Colors.red;
       case 'LOW_STOCK':
+      case 'OUT_OF_STOCK':
         return Colors.amber;
       case 'COMPARE_READY':
         return Colors.teal;
@@ -242,10 +246,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   IconData _getAlertIcon(String alertType) {
     switch (alertType) {
       case 'EXPIRATION_WARNING':
+      case 'EXPIRING_TOMORROW':
+      case 'WASTE_RISK_WEEK':
         return Icons.warning_amber;
       case 'EXPIRED':
         return Icons.error;
       case 'LOW_STOCK':
+      case 'OUT_OF_STOCK':
         return Icons.inventory_2;
       case 'COMPARE_READY':
         return Icons.compare_arrows;
@@ -260,10 +267,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     switch (alertType) {
       case 'EXPIRATION_WARNING':
         return 'Próximo a caducar';
+      case 'EXPIRING_TOMORROW':
+        return 'Caduca mañana';
+      case 'WASTE_RISK_WEEK':
+        return 'Riesgo de desperdicio';
       case 'EXPIRED':
         return 'Producto caducado';
       case 'LOW_STOCK':
         return 'Stock bajo';
+      case 'OUT_OF_STOCK':
+        return 'Sin stock';
       case 'COMPARE_READY':
         return 'Comparativa lista';
       case 'PRICE_DROP':
@@ -286,27 +299,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
     if (!mounted) return;
 
-    if (notification.alertType == 'COMPARE_READY') {
-      Navigator.pushNamed(
-        context,
-        '/shopping-list',
-        arguments: const {'openCompareResults': true},
-      );
-      return;
-    }
-
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(_getAlertTitle(notification.alertType)),
-        content: Text(notification.reason?.trim().isNotEmpty == true ? notification.reason! : 'Sin mensaje'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
+    await NotificationNavigation.openFromModel(
+      context,
+      notification,
+      pushNamed: (route, {arguments}) {
+        Navigator.pushNamed(context, route, arguments: arguments);
+      },
     );
   }
 

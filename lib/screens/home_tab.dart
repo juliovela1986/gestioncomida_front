@@ -106,6 +106,33 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+  /// SCRUM-172: evitar logout accidental (feedback Furones).
+  Future<void> _confirmAndLogout(AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.logout),
+        content: Text(l10n.logoutConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.logout),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await _fcmService.deleteToken();
+    await _authService.logout();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/');
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -160,12 +187,7 @@ class _HomeTabState extends State<HomeTab> {
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: l10n.logout,
-            onPressed: () async {
-              await _fcmService.deleteToken();
-              await _authService.logout();
-              if (!mounted) return;
-              Navigator.of(this.context).pushReplacementNamed('/');
-            },
+            onPressed: () => _confirmAndLogout(l10n),
           ),
         ],
       ),
