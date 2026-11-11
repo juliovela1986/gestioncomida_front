@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../services/account_service.dart';
@@ -6,10 +7,12 @@ import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 import '../services/preferences_service.dart';
 import '../services/cleanup_preferences_service.dart';
+import '../services/shopping_preferences_service.dart';
 import '../services/fcm_service.dart';
 import '../services/inventory_service.dart';
 import '../l10n/app_localizations.dart';
 import '../models/pending_expiration_item.dart';
+import '../models/shopping_preferences.dart';
 import '../core/app_globals.dart';
 import '../services/feedback_service.dart';
 import 'privacy_webview_screen.dart';
@@ -19,17 +22,25 @@ typedef CleanupPreferencesUpdater = Future<CleanupPreferencesResponseDto> Functi
   CleanupPreferencesUpdateRequestDto request,
 );
 typedef ExpiredPendingSummaryLoader = Future<ExpiredPendingSummaryResponseDto> Function();
+typedef ShoppingPreferencesLoader = Future<ShoppingPreferencesResponseDto> Function();
+typedef ShoppingPreferencesUpdater = Future<ShoppingPreferencesResponseDto> Function(
+  ShoppingPreferencesUpdateRequestDto request,
+);
 
 class SettingsScreen extends StatefulWidget {
   final CleanupPreferencesLoader? loadCleanupPreferences;
   final CleanupPreferencesUpdater? updateCleanupPreferences;
   final ExpiredPendingSummaryLoader? loadExpiredPendingSummary;
+  final ShoppingPreferencesLoader? loadShoppingPreferences;
+  final ShoppingPreferencesUpdater? updateShoppingPreferences;
 
   const SettingsScreen({
     super.key,
     this.loadCleanupPreferences,
     this.updateCleanupPreferences,
     this.loadExpiredPendingSummary,
+    this.loadShoppingPreferences,
+    this.updateShoppingPreferences,
   });
 
   @override
@@ -38,25 +49,38 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final CleanupPreferencesService _cleanupPreferencesService = CleanupPreferencesService();
+  final ShoppingPreferencesService _shoppingPreferencesService = ShoppingPreferencesService();
   final InventoryService _inventoryService = InventoryService();
   final AccountService _accountService = AccountService();
   final AuthService _authService = AuthService();
   final FeedbackService _feedbackService = FeedbackService();
   final BiometricService _biometricService = BiometricService();
+  final TextEditingController _postalCodeController = TextEditingController();
 
   bool _isLoadingCleanup = true;
   bool _isSavingCleanup = false;
+  bool _isLoadingShopping = true;
+  bool _isSavingShopping = false;
   bool _isDeletingAccount = false;
   bool _biometricAvailable = false;
   String? _cleanupError;
+  String? _shoppingError;
   CleanupPreferencesResponseDto? _cleanupPreferences;
+  ShoppingPreferencesResponseDto? _shoppingPreferences;
   ExpiredPendingSummaryResponseDto? _summary;
 
   @override
   void initState() {
     super.initState();
     _loadCleanupData();
+    _loadShoppingPreferences();
     _loadBiometricAvailability();
+  }
+
+  @override
+  void dispose() {
+    _postalCodeController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadBiometricAvailability() async {
@@ -112,6 +136,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _cleanupError = e.toString();
         _isLoadingCleanup = false;
       });
+    }
+  }
+
+  Future<void> _loadShoppingPreferences() async {
+    setState(() {
+      _isLoadingShopping = true;
+      _shoppingError = null;
+    });
+
+    try {
+      final preferences = await (widget.loadShoppingPreferences?.call() ??
+          _shoppingPreferencesService.getShoppingPreferences());
+      if (!mounted) return;
+      setState(() {
+        _shoppingPreferences = preferences;
+        _postalCodeController.text = preferences.postalCode ?? '';
+        _isLoadingShopping = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _shoppingError = e.toString();
+        _isLoadingShopping = false;
+      });
+    }
+  }
+
+  void _togglePreferredSupermarket(String key) {
+    final current = _shoppingPreferences;
+    if (current == null) return;
+    final next = List<String>.from(current.preferredSupermarkets);
+    if (next.contains(key)) {
+      next.remove(key);
+    } else {
+      next.add(key);
+    }
+    setState(() {
+      _shoppingPreferences = current.copyWith(preferredSupermarkets: next);
+    });
+  }
+
+  Future<void> _saveShoppingPreferences() async {
+    final current = _shoppingPreferences;
+    if (current == null || _isSavingShopping) return;
+
+    final l10n = AppLocalizations.of(context);
+    final preferred = current.preferredSupermarkets;
+    if (preferred.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.translate('shopping_prefs_select_one'))),
+      );
+      return;
+    }
+
+    final postal = _postalCodeController.text.trim();
+    final hasMercadona = preferred.contains('mercadona');
+    if (hasMercadona && !RegExp(r'^\d{5}$').hasMatch(postal)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.translate('shopping_prefs_mercadona_cp_required'))),
+      );
+      return;
+    }
+
+    setState(() => _isSavingShopping = true);
+
+    try {
+      final request = ShoppingPreferencesUpdateRequestDto(
+        preferredSupermarkets: preferred,
+        postalCode: postal.isEmpty ? null : postal,
+        zoneLabel: current.zoneLabel,
+      );
+      final updated = await (widget.updateShoppingPreferences?.call(request) ??
+          _shoppingPreferencesService.updateShoppingPreferences(request));
+
+      if (!mounted) return;
+      setState(() {
+        _shoppingPreferences = updated;
+        _postalCodeController.text = updated.postalCode ?? '';
+        _isSavingShopping = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.translate('shopping_prefs_saved'))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSavingShopping = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     }
   }
 
@@ -278,6 +391,125 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Text(
+              l10n.translate('shopping_prefs_section_title'),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(
+              l10n.translate('shopping_prefs_section_subtitle'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          if (_isLoadingShopping)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_shoppingError != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_shoppingError!),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: _loadShoppingPreferences,
+                    icon: const Icon(Icons.refresh),
+                    label: Text(l10n.refresh),
+                  ),
+                ],
+              ),
+            )
+          else if (_shoppingPreferences != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l10n.translate('shopping_prefs_supers'),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: kKnownSupermarketKeys.map((key) {
+                  final selected =
+                      _shoppingPreferences!.preferredSupermarkets.contains(key);
+                  return FilterChip(
+                    label: Text(supermarketDisplayName(key)),
+                    selected: selected,
+                    onSelected: (_) => _togglePreferredSupermarket(key),
+                  );
+                }).toList(),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: TextField(
+                controller: _postalCodeController,
+                keyboardType: TextInputType.number,
+                maxLength: 5,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: l10n.translate('shopping_prefs_postal_code'),
+                  hintText: l10n.translate('shopping_prefs_postal_code_hint'),
+                  border: const OutlineInputBorder(),
+                  counterText: '',
+                ),
+              ),
+            ),
+            if (_shoppingPreferences!.completeness?.zoneMismatchNote != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  _shoppingPreferences!.completeness!.zoneMismatchNote!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.tertiary,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            if (_shoppingPreferences!.completeness?.carrefourNote != null &&
+                _shoppingPreferences!.preferredSupermarkets.contains('carrefour'))
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  _shoppingPreferences!.completeness!.carrefourNote!,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: ElevatedButton.icon(
+                key: const Key('save_shopping_prefs'),
+                onPressed: _isSavingShopping ? null : _saveShoppingPreferences,
+                icon: _isSavingShopping
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(
+                  _isSavingShopping ? l10n.translate('saving') : l10n.save,
+                ),
+              ),
+            ),
+          ],
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(
               l10n.translate('cleanup_section_title'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
@@ -438,6 +670,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: ElevatedButton.icon(
+                key: const Key('save_cleanup_prefs'),
                 onPressed: _isSavingCleanup ? null : _saveCleanupPreferences,
                 icon: _isSavingCleanup
                     ? const SizedBox(

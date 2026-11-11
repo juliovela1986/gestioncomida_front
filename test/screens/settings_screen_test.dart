@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'package:gestioncomida_front/l10n/app_localizations.dart';
 import 'package:gestioncomida_front/models/pending_expiration_item.dart';
+import 'package:gestioncomida_front/models/shopping_preferences.dart';
 import 'package:gestioncomida_front/screens/settings_screen.dart';
 import 'package:gestioncomida_front/services/preferences_service.dart';
 
@@ -14,6 +15,9 @@ void main() {
     required Future<CleanupPreferencesResponseDto> Function(CleanupPreferencesUpdateRequestDto request)
         updatePreferences,
     required Future<ExpiredPendingSummaryResponseDto> Function() loadSummary,
+    Future<ShoppingPreferencesResponseDto> Function()? loadShoppingPreferences,
+    Future<ShoppingPreferencesResponseDto> Function(ShoppingPreferencesUpdateRequestDto request)?
+        updateShoppingPreferences,
   }) {
     return ChangeNotifierProvider<PreferencesService>(
       create: (_) => PreferencesService(),
@@ -36,6 +40,18 @@ void main() {
           loadCleanupPreferences: loadPreferences,
           updateCleanupPreferences: updatePreferences,
           loadExpiredPendingSummary: loadSummary,
+          loadShoppingPreferences: loadShoppingPreferences ??
+              () async => const ShoppingPreferencesResponseDto(
+                    preferredSupermarkets: ['mercadona'],
+                    postalCode: '28013',
+                    storeIds: {},
+                  ),
+          updateShoppingPreferences: updateShoppingPreferences ??
+              (request) async => ShoppingPreferencesResponseDto(
+                    preferredSupermarkets: request.preferredSupermarkets,
+                    postalCode: request.postalCode,
+                    storeIds: const {},
+                  ),
         ),
       ),
     );
@@ -67,6 +83,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Reportar problema'), findsOneWidget);
+      expect(find.text('Supermercados y zona'), findsOneWidget);
+      expect(find.text('Mercadona'), findsWidgets);
+
+      await tester.scrollUntilVisible(
+        find.text('Limpieza de caducados'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+
       expect(find.text('Limpieza de caducados'), findsOneWidget);
       expect(find.text('Frecuencia de recordatorio'), findsOneWidget);
       expect(find.text('Semanal'), findsWidgets);
@@ -113,13 +139,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final cleanupSave = find.byKey(const Key('save_cleanup_prefs'));
       await tester.scrollUntilVisible(
-        find.text('Guardar'),
+        cleanupSave,
         300,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Guardar'));
+      await tester.tap(cleanupSave);
       await tester.pumpAndSettle();
 
       expect(capturedRequest, isNotNull);
@@ -129,4 +156,3 @@ void main() {
     });
   });
 }
-
