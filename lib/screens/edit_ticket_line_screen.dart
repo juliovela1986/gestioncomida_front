@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../core/app_logger.dart';
 import '../models/ticket.dart';
 import '../models/location.dart';
 import '../services/ticket_service.dart';
@@ -123,7 +124,7 @@ class _EditTicketLineScreenState extends State<EditTicketLineScreen> {
   }
 
   Future<void> _saveChanges() async {
-    print('[EditTicketLine] 🔵 Guardando cambios...');
+    AppLogger.debug('[EditTicketLine] Guardando cambios...');
     setState(() => _isSaving = true);
 
     try {
@@ -150,7 +151,7 @@ class _EditTicketLineScreenState extends State<EditTicketLineScreen> {
       }).toList();
 
       await _ticketService.updateTicket(widget.initialTicket.id, {'lines': updatedLines});
-      print('[EditTicketLine] ✅ Actualización exitosa');
+      AppLogger.debug('[EditTicketLine] Actualización exitosa');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -165,7 +166,7 @@ class _EditTicketLineScreenState extends State<EditTicketLineScreen> {
         });
       }
     } catch (e) {
-      print('[EditTicketLine] ❌ Error al guardar: $e');
+      AppLogger.error('[EditTicketLine] Error al guardar', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('❌ Error al guardar: $e')),
@@ -329,26 +330,28 @@ class _EditTicketLineScreenState extends State<EditTicketLineScreen> {
                   : _pickDate(isExpiration: false),
             ),
 
-            const SizedBox(height: 20),
-
-            // ── Info OCR ───────────────────────────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(8),
+            // SCRUM-122: detalle OCR/confianza solo en debug.
+            if (AppLogger.showTechnicalOcrUi) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Texto Original OCR:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(_editingLine.parsedText ?? 'N/A'),
+                    const SizedBox(height: 4),
+                    Text(
+                        'Confianza: ${((_editingLine.confidence ?? 0) * 100).toInt()}%'),
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Texto Original OCR:',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(_editingLine.parsedText ?? 'N/A'),
-                  const SizedBox(height: 4),
-                  Text('Confianza: ${((_editingLine.confidence ?? 0) * 100).toInt()}%'),
-                ],
-              ),
-            ),
+            ],
 
             const SizedBox(height: 24),
             ElevatedButton(

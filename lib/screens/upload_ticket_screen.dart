@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_logger.dart';
 import 'package:dio/dio.dart';
 import '../core/error_utils.dart';
 import '../services/ticket_service.dart';
@@ -51,9 +52,8 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
       });
       
       final response = await _ticketService.uploadTicket(formData);
-      
-      print('[Upload] Response status: ${response.statusCode}');
-      print('[Upload] Response data: ${response.data}');
+    AppLogger.debug('[Upload] Response status: ${response.statusCode}');
+    AppLogger.debug('[Upload] Response data: ${response.data}');
       
       if (response.statusCode == 200 && mounted) {
         // Intentar obtener el ID del ticket de diferentes estructuras posibles
@@ -68,7 +68,7 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
         }
         
         if (ticketId != null) {
-          print('[Upload] Ticket ID obtenido: $ticketId');
+    AppLogger.debug('[Upload] Ticket ID obtenido: $ticketId');
           final uploadPayload = response.data is Map<String, dynamic>
               ? Map<String, dynamic>.from(response.data as Map)
               : <String, dynamic>{};
@@ -90,9 +90,9 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
         }
       }
     } on DioException catch (e) {
-      print('[Upload] DioException: ${e.message}');
-      print('[Upload] Status code: ${e.response?.statusCode}');
-      print('[Upload] Response: ${e.response?.data}');
+    AppLogger.debug('[Upload] DioException: ${e.message}');
+    AppLogger.debug('[Upload] Status code: ${e.response?.statusCode}');
+    AppLogger.debug('[Upload] Response: ${e.response?.data}');
       
       if (mounted) {
         String errorMessage = 'Error al procesar el ticket';
@@ -105,6 +105,9 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
           errorMessage = 'Acceso denegado. Verifica tus permisos';
         } else if (e.response?.statusCode == 415) {
           errorMessage = 'Formato de archivo no soportado';
+        } else if (e.response == null || (e.response!.statusCode ?? 500) >= 500) {
+          errorMessage =
+              'No se pudo procesar el ticket. Inténtalo de nuevo. Si el problema continúa, usa Reportar problema en Ajustes.';
         }
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,7 +124,7 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
         });
       }
     } catch (e) {
-      print('[Upload] Error: $e');
+    AppLogger.debug('[Upload] Error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

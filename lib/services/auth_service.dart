@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import '../core/app_logger.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
@@ -47,13 +48,13 @@ class AuthService {
 
   Future<String?> login(BuildContext context) async {
     try {
-      print('[Auth] 🔑 Iniciando proceso de login');
+    AppLogger.debug('[Auth] 🔑 Iniciando proceso de login');
       await _storage.deleteAll();
       _inMemoryToken = null;
-      print('[Auth] ✅ Storage y cache en memoria limpiados');
+    AppLogger.debug('[Auth] ✅ Storage y cache en memoria limpiados');
 
       final dio = Dio();
-      print('[Auth] 🌐 Obteniendo configuración desde: $_discoveryUrl');
+    AppLogger.debug('[Auth] 🌐 Obteniendo configuración desde: $_discoveryUrl');
       
       final discoveryResponse = await dio.get(
         _discoveryUrl,
@@ -82,8 +83,7 @@ class AuthService {
           'code_challenge=$codeChallenge&'
           'code_challenge_method=S256&'
           'prompt=login';
-      
-      print('[Auth] 🚀 URL de autorización generada, abriendo WebView');
+    AppLogger.debug('[Auth] 🚀 URL de autorización generada, abriendo WebView');
 
       final result = await Navigator.push<String?>(
         context,
@@ -120,14 +120,13 @@ class AuthService {
                             final refreshToken = response.data['refresh_token'];
                             
                             await _saveTokens(token, refreshToken);
-                            
-                            print('[Auth] ✅ Token obtenido y guardado exitosamente');
+    AppLogger.debug('[Auth] ✅ Token obtenido y guardado exitosamente');
                             return token; // Devolvemos el token
                         }
                     } catch (e) {
-                        print('[Auth] ❌ Error al canjear código: $e');
+    AppLogger.debug('[Auth] ❌ Error al canjear código: $e');
                         if (e is DioException) {
-                          print('[Auth] ❌ Detalle del error: ${e.response?.data}');
+    AppLogger.debug('[Auth] ❌ Detalle del error: ${e.response?.data}');
                         }
                     }
                 }
@@ -140,11 +139,11 @@ class AuthService {
       return result;
 
     } catch (e) {
-      print('[Auth] ❌ Error general en login: $e');
+    AppLogger.debug('[Auth] ❌ Error general en login: $e');
       if (e is DioException) {
-        print('[Auth] ❌ Status Code: ${e.response?.statusCode}');
-        print('[Auth] ❌ Response Data: ${e.response?.data}');
-        print('[Auth] ❌ Headers: ${e.response?.headers}');
+    AppLogger.debug('[Auth] ❌ Status Code: ${e.response?.statusCode}');
+    AppLogger.debug('[Auth] ❌ Response Data: ${e.response?.data}');
+    AppLogger.debug('[Auth] ❌ Headers: ${e.response?.headers}');
       }
       return null;
     }
@@ -267,8 +266,7 @@ class AuthService {
     try {
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) return null;
-
-      print('[Auth] 🔄 Refrescando token...');
+    AppLogger.debug('[Auth] 🔄 Refrescando token...');
       final dio = Dio();
       final discoveryResponse = await dio.get(_discoveryUrl);
       final tokenEndpoint = discoveryResponse.data['token_endpoint'];
@@ -288,27 +286,26 @@ class AuthService {
         final newRefreshToken = response.data['refresh_token'];
         
         await _saveTokens(newToken, newRefreshToken); // Guardamos los nuevos tokens
-        
-        print('[Auth] ✅ Token refrescado exitosamente');
+    AppLogger.debug('[Auth] ✅ Token refrescado exitosamente');
         return newToken;
       }
     } on DioException catch (e) {
-      print('[Auth] ❌ Error al refrescar token: $e');
+    AppLogger.debug('[Auth] ❌ Error al refrescar token: $e');
 
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
         await logout();
         throw const SessionExpiredException();
       }
     } catch (e) {
-      print('[Auth] ❌ Error al refrescar token: $e');
+    AppLogger.debug('[Auth] ❌ Error al refrescar token: $e');
     }
     return null;
   }
 
   Future<void> logout() async {
-    print('[Auth] 🚪 Cerrando sesión...');
+    AppLogger.debug('[Auth] 🚪 Cerrando sesión...');
     await _storage.deleteAll();
     _inMemoryToken = null;
-    print('[Auth] ✅ Sesión cerrada y tokens eliminados');
+    AppLogger.debug('[Auth] ✅ Sesión cerrada y tokens eliminados');
   }
 }

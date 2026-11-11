@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../core/app_logger.dart';
 import '../core/error_utils.dart';
 import '../core/ticket_discount_utils.dart';
+import '../l10n/app_localizations.dart';
 import '../services/ticket_service.dart';
 import '../services/location_service.dart';
 import '../models/ticket.dart';
@@ -78,16 +80,16 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
 
   Future<void> _loadTicket() async {
     try {
-      print('[Validation] 🔵 Iniciando carga de ticket: ${widget.ticketId}');
+    AppLogger.debug('[Validation] 🔵 Iniciando carga de ticket: ${widget.ticketId}');
       setState(() => _isLoading = true); // Mostramos el loader al recargar
       final ticket = await _ticketService.getTicketById(widget.ticketId);
-      print('[Validation] ✅ Ticket cargado exitosamente');
+    AppLogger.debug('[Validation] ✅ Ticket cargado exitosamente');
       setState(() {
         _ticket = ticket;
         _isLoading = false;
       });
     } catch (e, stackTrace) {
-      print('[Validation] ❌ Error: $e\n$stackTrace');
+    AppLogger.debug('[Validation] ❌ Error: $e\n$stackTrace');
       setState(() {
         _errorMessage = userFriendlyError(e, fallback: 'No se pudo cargar el ticket. Inténtalo de nuevo.');
         _isLoading = false;
@@ -223,11 +225,10 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
 
   Future<void> _syncToInventory() async {
     if (_ticket == null || _ticket!.lines.isEmpty) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Añade al menos un producto antes de sincronizar. El OCR no detectó líneas.',
-          ),
+        SnackBar(
+          content: Text(l10n.translate('ticket_ocr_failed_user')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -238,20 +239,20 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
     try {
       // Intentar validar el ticket — no es fatal si ya estaba validado
       try {
-        print('[Validation] 🔵 Validando ticket ${widget.ticketId}...');
+    AppLogger.debug('[Validation] 🔵 Validando ticket ${widget.ticketId}...');
         await _ticketService.validateTicket(widget.ticketId);
-        print('[Validation] ✅ Ticket validado.');
+    AppLogger.debug('[Validation] ✅ Ticket validado.');
       } catch (e) {
-        print('[Validation] ⚠️ validateTicket falló (puede que ya estuviera validado): $e');
+    AppLogger.debug('[Validation] ⚠️ validateTicket falló (puede que ya estuviera validado): $e');
       }
 
       // Sincronizar al inventario con ubicación global seleccionada
-      print('[Validation] 🔵 Sincronizando inventario...');
+    AppLogger.debug('[Validation] 🔵 Sincronizando inventario...');
       await _ticketService.syncTicketInventory(
         widget.ticketId,
         locationId: _selectedLocationId,
       );
-      print('[Validation] ✅ Sincronización completada, navegando a gestión de fechas...');
+    AppLogger.debug('[Validation] ✅ Sincronización completada, navegando a gestión de fechas...');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -270,7 +271,7 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
         );
       }
     } catch (e) {
-      print('[Validation] ❌ Error al sincronizar: $e');
+    AppLogger.debug('[Validation] ❌ Error al sincronizar: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(userFriendlyError(e, fallback: 'No se pudo sincronizar el ticket con el inventario.'))),
@@ -410,7 +411,7 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
     );
 
     if (result != null && result['saved'] == true && mounted) {
-      print('[Validation] 🔄 Recibido resultado desde edición, recargando ticket...');
+    AppLogger.debug('[Validation] 🔄 Recibido resultado desde edición, recargando ticket...');
       // Guardar las pre-asignaciones devueltas por el editor
       _lineExtras[line.id] = {
         'locationId': result['locationId'],
@@ -441,8 +442,9 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
       return const SizedBox.shrink();
     }
 
+    final l10n = AppLocalizations.of(context);
     final hint = _manualReviewHint ??
-        'El OCR no extrajo productos (confianza baja). Usa «Añadir Producto» o revisa el texto OCR.';
+        '${l10n.translate('ticket_ocr_failed_user')} ${l10n.translate('ticket_ocr_retry_guide')}';
 
     return Material(
       color: Colors.orange.shade50,
@@ -467,7 +469,9 @@ class _TicketValidationScreenState extends State<TicketValidationScreen> {
                 ),
               ],
             ),
-            if ((_ticket?.rawText ?? '').trim().isNotEmpty) ...[
+            // SCRUM-122: raw OCR solo en debug — no en release.
+            if (AppLogger.showTechnicalOcrUi &&
+                (_ticket?.rawText ?? '').trim().isNotEmpty) ...[
               const SizedBox(height: 8),
               TextButton.icon(
                 onPressed: () => setState(() => _showRawText = !_showRawText),

@@ -99,12 +99,12 @@ Opcional futuro: `AppConfig.enableVerboseLogs` forzado en staging.
 
 ## Alcance de implementación (checklist)
 
-1. [ ] Crear `AppLogger` + regla en `AGENTS.md`.
-2. [ ] Migrar `TicketService`, `upload_ticket_screen`, `ticket_validation_screen` (prioridad).
-3. [ ] Ocultar / acotar “Ver texto OCR” y “Texto Original OCR” en release.
-4. [ ] Copy usuario + i18n + enlace a guía de captura.
-5. [ ] Barrido resto: `ApiClient`, Auth, FCM, Inventory (misma regla).
-6. [ ] Test: en debug se ve dump; en release (widget/`kDebugMode` mock) no aparece raw OCR.
+1. [x] Crear `AppLogger` + regla en `AGENTS.md`.
+2. [x] Migrar `TicketService`, `upload_ticket_screen`, `ticket_validation_screen` (prioridad).
+3. [x] Ocultar / acotar “Ver texto OCR” y “Texto Original OCR” en release.
+4. [x] Copy usuario + i18n (`ticket_ocr_*`).
+5. [x] Barrido: `ApiClient`, Auth, FCM, Inventory.
+6. [x] Test: `test/core/app_logger_test.dart`.
 
 Fuera de alcance inicial: backend logging (SLF4J ya tiene niveles).
 

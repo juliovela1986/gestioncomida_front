@@ -88,6 +88,11 @@ class AppLocalizations {
       'shopping_prefs_mercadona_cp_required': 'Indica un código postal de 5 dígitos si eliges Mercadona',
       'shopping_prefs_select_one': 'Selecciona al menos un supermercado',
       'shopping_prefs_saved': 'Preferencias de compra guardadas',
+      'ticket_ocr_failed_user':
+          'No se han podido leer bien los productos. Añade al menos uno o vuelve a capturar la foto.',
+      'ticket_ocr_retry_guide':
+          'Sigue la guía de captura (luz, enfoque, ticket completo). Si el problema continúa, usa Reportar problema en Ajustes.',
+      'ticket_report_admin': 'Si el problema continúa, reporta al administrador desde Ajustes.',
       'cleanup_section_title': 'Limpieza de caducados',
       'cleanup_frequency': 'Frecuencia de recordatorio',
       'cleanup_frequency_daily': 'Diaria',
@@ -391,6 +396,11 @@ class AppLocalizations {
       'shopping_prefs_mercadona_cp_required': 'Enter a 5-digit postal code if you select Mercadona',
       'shopping_prefs_select_one': 'Select at least one supermarket',
       'shopping_prefs_saved': 'Shopping preferences saved',
+      'ticket_ocr_failed_user':
+          'Products could not be read clearly. Add at least one or retake the photo.',
+      'ticket_ocr_retry_guide':
+          'Follow the capture guide (light, focus, full ticket). If it continues, use Report a problem in Settings.',
+      'ticket_report_admin': 'If the problem continues, report it from Settings.',
       'cleanup_section_title': 'Expired cleanup',
       'cleanup_frequency': 'Reminder frequency',
       'cleanup_frequency_daily': 'Daily',
@@ -694,6 +704,11 @@ class AppLocalizations {
       'shopping_prefs_mercadona_cp_required': 'Indica un codi postal de 5 dígits si tries Mercadona',
       'shopping_prefs_select_one': 'Selecciona almenys un supermercat',
       'shopping_prefs_saved': 'Preferències de compra desades',
+      'ticket_ocr_failed_user':
+          'No s\'han pogut llegir bé els productes. Afegeix-ne almenys un o torna a capturar la foto.',
+      'ticket_ocr_retry_guide':
+          'Segueix la guia de captura (llum, enfocament, tiquet complet). Si continua, usa Informar d\'un problema a Ajustos.',
+      'ticket_report_admin': 'Si el problema continua, informa\'n des d\'Ajustos.',
       'cleanup_section_title': 'Neteja de caducats',
       'cleanup_frequency': 'Freqüència de recordatori',
       'cleanup_frequency_daily': 'Diària',
@@ -997,6 +1012,11 @@ class AppLocalizations {
       'shopping_prefs_mercadona_cp_required': 'Idatzi 5 digituko posta-kodea Mercadona aukeratzen baduzu',
       'shopping_prefs_select_one': 'Hautatu gutxienez supermerkatu bat',
       'shopping_prefs_saved': 'Erosketa hobespenak gorde dira',
+      'ticket_ocr_failed_user':
+          'Ezin izan dira produktuak ondo irakurri. Gehitu gutxienez bat edo atera berriro argazkia.',
+      'ticket_ocr_retry_guide':
+          'Jarraitu kaptura gida (argia, fokua, tiket osoa). Jarraitzen badu, erabili Arazoa salatu Ezarpenetan.',
+      'ticket_report_admin': 'Arazoak jarraitzen badu, salatu Ezarpenetatik.',
       'cleanup_section_title': 'Iraungituen garbiketa',
       'cleanup_frequency': 'Abisu maiztasuna',
       'cleanup_frequency_daily': 'Egunero',
@@ -1300,6 +1320,11 @@ class AppLocalizations {
       'shopping_prefs_mercadona_cp_required': 'Indica un código postal de 5 díxitos se elixes Mercadona',
       'shopping_prefs_select_one': 'Selecciona polo menos un supermercado',
       'shopping_prefs_saved': 'Preferencias de compra gardadas',
+      'ticket_ocr_failed_user':
+          'Non se puideron ler ben os produtos. Engade polo menos un ou volve capturar a foto.',
+      'ticket_ocr_retry_guide':
+          'Segue a guía de captura (luz, enfoque, ticket completo). Se continua, usa Informar dun problema en Axustes.',
+      'ticket_report_admin': 'Se o problema continua, informa desde Axustes.',
       'cleanup_section_title': 'Limpeza de caducados',
       'cleanup_frequency': 'Frecuencia de recordatorio',
       'cleanup_frequency_daily': 'Diaria',

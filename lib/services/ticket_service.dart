@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'api_client.dart';
+import '../core/app_logger.dart';
 import '../models/ticket.dart';
 import '../models/expiration_management_response.dart';
 import '../models/ticket_manual_create.dart';
@@ -18,17 +19,17 @@ class TicketService {
       );
       return response;
     } catch (e) {
-      print('Error al obtener tickets: $e');
+      AppLogger.error('Error al obtener tickets', e);
       rethrow;
     }
   }
 
   Future<TicketResponseDto> getTicketById(String ticketId) async {
-    print('[TicketService] 🔵 getTicketById llamado con ID: $ticketId');
-    print('[TicketService] 🌐 Haciendo GET a: /api/tickets/$ticketId');
+    AppLogger.debug('getTicketById', ticketId);
     final response = await _apiClient.dio.get('/api/tickets/$ticketId');
-    print('[TicketService] ✅ Respuesta recibida: ${response.statusCode}');
-    print('[TicketService] 📦 Data: ${response.data}');
+    AppLogger.debug('getTicketById status', response.statusCode);
+    // Payload OCR/rawText solo en debug — nunca en release (SCRUM-122).
+    AppLogger.debug('getTicketById payload', response.data);
     return TicketResponseDto.fromJson(response.data);
   }
 
@@ -45,9 +46,9 @@ class TicketService {
   }
 
   Future<ExpirationManagementResponse> getExpirationManagement(String ticketId) async {
-    print('[TicketService] 🔵 getExpirationManagement llamado con ID: $ticketId');
+    AppLogger.debug('getExpirationManagement', ticketId);
     final response = await _apiClient.dio.get('/api/tickets/$ticketId/expiration-management');
-    print('[TicketService] ✅ Respuesta raw: ${response.data}');
+    AppLogger.debug('getExpirationManagement payload', response.data);
     return ExpirationManagementResponse.fromJson(response.data);
   }
 
@@ -61,14 +62,9 @@ class TicketService {
   }
 
   Future<TicketResponseDto> updateTicket(String ticketId, Map<String, dynamic> data) async {
-    print('[TicketService] 🔵 updateTicket llamado con ID: $ticketId');
-    print('[TicketService] 📝 Data a enviar: $data');
+    AppLogger.debug('updateTicket', {'id': ticketId, 'data': data});
     await _apiClient.dio.put('/api/tickets/$ticketId', data: data);
-    print('[TicketService] ✅ PUT exitoso, obteniendo ticket actualizado...');
-    
-    // Obtener el ticket actualizado con las líneas
-    final updatedTicket = await getTicketById(ticketId);
-    return updatedTicket;
+    return await getTicketById(ticketId);
   }
 
   Future<void> deleteTicket(String ticketId) async {
@@ -76,16 +72,13 @@ class TicketService {
   }
 
   Future<void> deleteTicketLine(String ticketId, String lineId) async {
-    print('[TicketService] 🗑️ deleteTicketLine llamado - Ticket: $ticketId, Line: $lineId');
+    AppLogger.debug('deleteTicketLine', {'ticket': ticketId, 'line': lineId});
     await _apiClient.dio.delete('/api/tickets/$ticketId/lines/$lineId');
-    print('[TicketService] ✅ Línea eliminada exitosamente');
   }
 
   Future<TicketResponseDto> addTicketLine(String ticketId, Map<String, dynamic> lineData) async {
-    print('[TicketService] ➕ addTicketLine llamado - Ticket: $ticketId');
-    print('[TicketService] 📝 Data: $lineData');
+    AppLogger.debug('addTicketLine', {'ticket': ticketId, 'data': lineData});
     await _apiClient.dio.post('/api/tickets/$ticketId/lines', data: lineData);
-    print('[TicketService] ✅ Línea añadida, obteniendo ticket actualizado...');
     return await getTicketById(ticketId);
   }
 
@@ -94,13 +87,13 @@ class TicketService {
   }
 
   Future<TicketResponseDto> validateTicket(String ticketId) async {
-    print('[TicketService] ✅ validateTicket llamado con ID: $ticketId');
+    AppLogger.debug('validateTicket', ticketId);
     final response = await _apiClient.dio.post('/api/tickets/$ticketId/validate');
     return TicketResponseDto.fromJson(response.data);
   }
 
   Future<void> updateTicketLine(String ticketId, String lineId, Map<String, dynamic> data) async {
-    print('[TicketService] 📝 updateTicketLine - Ticket: $ticketId, Line: $lineId');
+    AppLogger.debug('updateTicketLine', {'ticket': ticketId, 'line': lineId});
     await _apiClient.dio.put('/api/tickets/$ticketId/lines/$lineId', data: data);
   }
 
@@ -120,10 +113,10 @@ class TicketService {
       },
       {
         'id': 'mock-2',
-        'supermarketName': 'Mercadona',
+        'supermarketName': 'MERCADONA',
         'purchaseDatetime': '2024-12-26 18:30',
-        'lineCount': 5,
-        'total': '12.45',
+        'lineCount': 12,
+        'total': '45.20',
         'synced': false,
       },
     ];

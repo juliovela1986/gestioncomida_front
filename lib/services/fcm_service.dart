@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import '../core/app_logger.dart';
 import 'package:dio/dio.dart';
 import '../core/app_globals.dart';
 import 'api_client.dart';
@@ -26,12 +27,12 @@ class FCMService {
       );
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        print('[FCM] ✅ Permisos concedidos');
+    AppLogger.debug('[FCM] ✅ Permisos concedidos');
         
         // Obtener token
         String? token = await _firebaseMessaging.getToken();
         if (token != null) {
-          print('[FCM] 📱 Token obtenido: ${token.substring(0, 20)}...');
+    AppLogger.debug('[FCM] 📱 Token obtenido: ${token.substring(0, 20)}...');
           await _sendTokenToBackend(token);
         }
 
@@ -41,10 +42,10 @@ class FCMService {
         // Configurar handlers
         _setupMessageHandlers();
       } else {
-        print('[FCM] ⚠️ Permisos denegados');
+    AppLogger.debug('[FCM] ⚠️ Permisos denegados');
       }
     } catch (e) {
-      print('[FCM] ❌ Error al inicializar: $e');
+    AppLogger.debug('[FCM] ❌ Error al inicializar: $e');
     }
   }
 
@@ -61,24 +62,24 @@ class FCMService {
 
     try {
       await _apiClient.dio.post('/api/users/fcm-tokens', data: payload, options: options);
-      print('[FCM] ✅ Token enviado al backend (/api/users/fcm-tokens)');
+    AppLogger.debug('[FCM] ✅ Token enviado al backend (/api/users/fcm-tokens)');
       return;
     } on DioException catch (e) {
       // Fallback por compatibilidad con backends que exponen la ruta singular.
       if (e.response?.statusCode != 404 && e.response?.statusCode != 405) {
-        print('[FCM] ❌ Error al enviar token en endpoint plural: $e');
+    AppLogger.debug('[FCM] ❌ Error al enviar token en endpoint plural: $e');
         return;
       }
     } catch (e) {
-      print('[FCM] ❌ Error inesperado al enviar token en endpoint plural: $e');
+    AppLogger.debug('[FCM] ❌ Error inesperado al enviar token en endpoint plural: $e');
       return;
     }
 
     try {
       await _apiClient.dio.post('/api/users/fcm-token', data: payload, options: options);
-      print('[FCM] ✅ Token enviado al backend (/api/users/fcm-token)');
+    AppLogger.debug('[FCM] ✅ Token enviado al backend (/api/users/fcm-token)');
     } catch (e) {
-      print('[FCM] ❌ Error al enviar token: $e');
+    AppLogger.debug('[FCM] ❌ Error al enviar token: $e');
     }
   }
 
@@ -86,10 +87,10 @@ class FCMService {
   void _setupMessageHandlers() {
     // Mensaje recibido cuando app está en foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('[FCM] 📩 Mensaje recibido (foreground)');
-      print('[FCM] Título: ${message.notification?.title}');
-      print('[FCM] Cuerpo: ${message.notification?.body}');
-      print('[FCM] Data: ${message.data}');
+    AppLogger.debug('[FCM] 📩 Mensaje recibido (foreground)');
+    AppLogger.debug('[FCM] Título: ${message.notification?.title}');
+    AppLogger.debug('[FCM] Cuerpo: ${message.notification?.body}');
+    AppLogger.debug('[FCM] Data: ${message.data}');
       
       // Refrescamos la campanita/listado aunque el usuario no navegue.
       _notificationRefreshService.notifyRefreshRequested();
@@ -102,7 +103,7 @@ class FCMService {
 
     // Mensaje tocado cuando app está en background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('[FCM] 📩 Notificación tocada (background)');
+    AppLogger.debug('[FCM] 📩 Notificación tocada (background)');
       _notificationRefreshService.notifyRefreshRequested();
       _handleMessage(message);
     });
@@ -110,7 +111,7 @@ class FCMService {
     // Verificar si la app se abrió desde una notificación
     _firebaseMessaging.getInitialMessage().then((RemoteMessage? message) {
       if (message != null) {
-        print('[FCM] 📩 App abierta desde notificación');
+    AppLogger.debug('[FCM] 📩 App abierta desde notificación');
         _notificationRefreshService.notifyRefreshRequested();
         _handleMessage(message);
       }
@@ -125,8 +126,7 @@ class FCMService {
       _navigateToNotifications();
       return;
     }
-
-    print('[FCM] 🔔 Deep link type=$type item=${data['inventoryItemId']} screen=${data['screen']}');
+    AppLogger.debug('[FCM] 🔔 Deep link type=$type item=${data['inventoryItemId']} screen=${data['screen']}');
     NotificationNavigation.open(
       context: navigatorKey.currentContext,
       alertType: type,
@@ -200,13 +200,13 @@ class FCMService {
     try {
       // Eliminar todos los tokens del backend
       await _apiClient.dio.delete('/api/users/fcm-tokens');
-      print('[FCM] ✅ Todos los tokens eliminados del backend');
+    AppLogger.debug('[FCM] ✅ Todos los tokens eliminados del backend');
       
       // Eliminar token local
       await _firebaseMessaging.deleteToken();
-      print('[FCM] 🗑️ Token eliminado localmente');
+    AppLogger.debug('[FCM] 🗑️ Token eliminado localmente');
     } catch (e) {
-      print('[FCM] ❌ Error al eliminar token: $e');
+    AppLogger.debug('[FCM] ❌ Error al eliminar token: $e');
     }
   }
 }
@@ -214,7 +214,7 @@ class FCMService {
 /// Handler para mensajes en background (debe ser top-level function)
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print('[FCM] 📩 Mensaje recibido en background');
-  print('[FCM] Título: ${message.notification?.title}');
-  print('[FCM] Cuerpo: ${message.notification?.body}');
+    AppLogger.debug('[FCM] 📩 Mensaje recibido en background');
+    AppLogger.debug('[FCM] Título: ${message.notification?.title}');
+    AppLogger.debug('[FCM] Cuerpo: ${message.notification?.body}');
 }

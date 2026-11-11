@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_logger.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui' show PlatformDispatcher;
@@ -17,25 +18,25 @@ class ApiClient {
         final token = await _authService.getValidAccessToken();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
-          print('[ApiClient] 🔑 Token añadido: ${token.substring(0, 20)}...');
+    AppLogger.debug('[ApiClient] 🔑 Token añadido: ${token.substring(0, 20)}...');
         } else {
-          print('[ApiClient] ⚠️ No hay token disponible');
+    AppLogger.debug('[ApiClient] ⚠️ No hay token disponible');
         }
-        print('[ApiClient] 📤 ${options.method} ${options.uri}');
+    AppLogger.debug('[ApiClient] 📤 ${options.method} ${options.uri}');
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
-        print('[ApiClient] ❌ Error: ${e.message}');
-        print('[ApiClient] ❌ URL: ${e.requestOptions.uri}');
-        print('[ApiClient] ❌ Status: ${e.response?.statusCode}');
-        print('[ApiClient] ❌ Response: ${e.response?.data}');
+    AppLogger.debug('[ApiClient] ❌ Error: ${e.message}');
+    AppLogger.debug('[ApiClient] ❌ URL: ${e.requestOptions.uri}');
+    AppLogger.debug('[ApiClient] ❌ Status: ${e.response?.statusCode}');
+    AppLogger.debug('[ApiClient] ❌ Response: ${e.response?.data}');
         
         final alreadyRetried = e.requestOptions.extra['auth_retry'] == true;
         final skipAuthFailureHandling =
             e.requestOptions.extra['skip_auth_failure_handling'] == true;
 
         if (e.response?.statusCode == 401 && !alreadyRetried && !skipAuthFailureHandling) {
-          print('[ApiClient] ⚠️ Token expirado (401), intentando refresh...');
+    AppLogger.debug('[ApiClient] ⚠️ Token expirado (401), intentando refresh...');
 
           try {
             final newToken = await _authService.refreshToken();
@@ -61,10 +62,10 @@ class ApiClient {
 
               try {
                 final retryResponse = await _retryRequest(e.requestOptions, newToken);
-                print('[ApiClient] ✅ Petición reintentada tras refresh correcto.');
+    AppLogger.debug('[ApiClient] ✅ Petición reintentada tras refresh correcto.');
                 return handler.resolve(retryResponse);
               } on DioException catch (retryError) {
-                print('[ApiClient] ❌ Falló el reintento tras refresh: ${retryError.message}');
+    AppLogger.debug('[ApiClient] ❌ Falló el reintento tras refresh: ${retryError.message}');
               }
             }
           } on SessionExpiredException catch (sessionError) {

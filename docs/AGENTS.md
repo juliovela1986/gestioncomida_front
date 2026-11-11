@@ -181,7 +181,7 @@ Ejecutar solo los tests del área modificada antes de dar por cerrada la tarea.
 - i18n: añadir claves en `AppLocalizations` para textos visibles al usuario.
 - Auth: tokens vía `AuthService`; el `ApiClient` gestiona refresh en 401.
 - Subidas (imagen/PDF): respetar `multipart` y el manejo especial de sesión expirada en `ApiClient`.
-- Logs: el proyecto usa `print` con prefijos `[ServiceName]`; no eliminar logs de depuración existentes salvo que se pida limpieza.
+- Logs: usar `AppLogger` (`lib/core/app_logger.dart`); no `print` suelto. Ver § Logging abajo.
 
 ---
 
