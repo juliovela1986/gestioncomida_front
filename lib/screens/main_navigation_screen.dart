@@ -51,8 +51,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
     final l10n = AppLocalizations.of(context);
     final prefs = Provider.of<PreferencesService>(context);
 
+    // SCRUM-190: SafeArea inferior — con nav por 3 botones el sistema solapaba la barra.
     return Scaffold(
-      key: ValueKey(prefs.locale.languageCode), 
+      key: ValueKey(prefs.locale.languageCode),
       body: IndexedStack(
         index: _currentIndex,
         children: [
@@ -63,41 +64,44 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Widget
           const MoreTab(),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            if (index == 2) {
-              _ticketsKey = UniqueKey();
-            }
-            _currentIndex = index;
-          });
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: l10n.home,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.inventory),
-            label: l10n.inventory,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.receipt),
-            label: l10n.tickets,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.shopping_cart),
-            label: l10n.shopping,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.more_horiz),
-            label: l10n.more,
-          ),
-        ],
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              if (index == 2) {
+                _ticketsKey = UniqueKey();
+              }
+              _currentIndex = index;
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Theme.of(context).primaryColor,
+          unselectedItemColor: Colors.grey,
+          items: [
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.home),
+              label: l10n.home,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.inventory),
+              label: l10n.inventory,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.receipt),
+              label: l10n.tickets,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.shopping_cart),
+              label: l10n.shopping,
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(Icons.more_horiz),
+              label: l10n.more,
+            ),
+          ],
+        ),
       ),
     );
   }

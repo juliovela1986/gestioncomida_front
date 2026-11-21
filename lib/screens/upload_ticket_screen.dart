@@ -146,9 +146,11 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Subir Ticket')),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
+      // SCRUM-190: botones inferiores no solapados por nav del sistema
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_selectedImage != null)
@@ -209,6 +211,7 @@ class _UploadTicketScreenState extends State<UploadTicketScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
