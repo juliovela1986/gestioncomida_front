@@ -6,6 +6,7 @@ import '../models/location.dart';
 import '../services/inventory_service.dart';
 import '../services/location_service.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/expiry_date_quick_chips.dart';
 
 class ProductLotsScreen extends StatefulWidget {
   final GroupedInventoryResponse product;
@@ -113,45 +114,78 @@ class _ProductLotsScreenState extends State<ProductLotsScreen> {
 
   Future<void> _editExpirationDate(LotDetail lot) async {
     final l10n = AppLocalizations.of(context);
-    final now = DateTime.now();
-    final pickerConfig = buildSafeDatePickerConfig(
-      initialDate: lot.expirationDate != null
-          ? DateTime.tryParse(lot.expirationDate!)
-          : now.add(const Duration(days: 7)),
-      firstDate: now.subtract(const Duration(days: 365)),
-      lastDate: now.add(const Duration(days: 1000)),
-    );
+    final current = lot.expirationDate != null ? DateTime.tryParse(lot.expirationDate!) : null;
 
-    final newDate = await showDatePicker(
+    // SCRUM-198: sheet con atajos + calendario
+    final chosen = await showModalBottomSheet<DateTime>(
       context: context,
-      helpText: l10n.expirationDate,
-      initialDate: pickerConfig.initialDate,
-      firstDate: pickerConfig.firstDate,
-      lastDate: pickerConfig.lastDate,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(l10n.expirationDate, style: Theme.of(ctx).textTheme.titleMedium),
+                ExpiryDateQuickChips(
+                  selectedDate: current,
+                  onSelected: (d) => Navigator.pop(ctx, d),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.calendar_month),
+                  label: Text(l10n.translate('tap_to_select')),
+                  onPressed: () async {
+                    final now = DateTime.now();
+                    final pickerConfig = buildSafeDatePickerConfig(
+                      initialDate: current ?? now.add(const Duration(days: 7)),
+                      firstDate: now.subtract(const Duration(days: 365)),
+                      lastDate: now.add(const Duration(days: 1000)),
+                    );
+                    final picked = await showDatePicker(
+                      context: ctx,
+                      helpText: l10n.expirationDate,
+                      initialDate: pickerConfig.initialDate,
+                      firstDate: pickerConfig.firstDate,
+                      lastDate: pickerConfig.lastDate,
+                    );
+                    if (picked != null && ctx.mounted) {
+                      Navigator.pop(ctx, picked);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
 
-    if (newDate != null) {
-      try {
-        final formattedDate = DateFormat('yyyy-MM-dd').format(newDate);
-        // Si no tiene fecha de alerta, sugerimos una (3 días antes)
-        String? newAlertDate;
-        if (lot.alertDate == null) {
-          newAlertDate = DateFormat('yyyy-MM-dd').format(newDate.subtract(const Duration(days: 3)));
-        }
+    if (chosen == null) return;
 
-        await _inventoryService.updateItem(lot.inventoryItemId, {
-          'expirationDate': formattedDate,
-          if (newAlertDate != null) 'alertDate': newAlertDate,
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.updateSuccess)),
-          );
-          _refreshData();
-        }
-      } catch (e) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ Error: $e')));
+    try {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(chosen);
+      String? newAlertDate;
+      if (lot.alertDate == null) {
+        newAlertDate = DateFormat('yyyy-MM-dd').format(chosen.subtract(const Duration(days: 3)));
+      }
+
+      await _inventoryService.updateItem(lot.inventoryItemId, {
+        'expirationDate': formattedDate,
+        if (newAlertDate != null) 'alertDate': newAlertDate,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.updateSuccess)),
+        );
+        _refreshData();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('❌ Error: $e')));
       }
     }
   }

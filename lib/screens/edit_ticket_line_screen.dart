@@ -5,6 +5,7 @@ import '../models/ticket.dart';
 import '../models/location.dart';
 import '../services/ticket_service.dart';
 import '../widgets/expiry_date_voice_widget.dart';
+import '../widgets/expiry_date_quick_chips.dart';
 
 class EditTicketLineScreen extends StatefulWidget {
   final TicketResponseDto initialTicket;
@@ -297,6 +298,15 @@ class _EditTicketLineScreenState extends State<EditTicketLineScreen> {
                 ],
               ),
               onTap: () => _pickDate(isExpiration: true),
+            ),
+            ExpiryDateQuickChips(
+              selectedDate: _expirationDate,
+              onSelected: (date) {
+                setState(() {
+                  _expirationDate = date;
+                  _alertDate ??= date.subtract(const Duration(days: 3));
+                });
+              },
             ),
             const SizedBox(height: 8),
 

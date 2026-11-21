@@ -7,6 +7,7 @@ import '../services/ticket_service.dart';
 import '../services/location_service.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/expiry_date_voice_widget.dart';
+import '../widgets/expiry_date_quick_chips.dart';
 
 class ExpirationDateManagerScreen extends StatefulWidget {
   final String ticketId;
@@ -294,6 +295,19 @@ class _ExpirationDateManagerScreenState extends State<ExpirationDateManagerScree
                 onPressed: _showExpiryVoiceInput,
               ),
               onTap: _pickExpirationDate,
+            ),
+            ExpiryDateQuickChips(
+              selectedDate: expDate,
+              onSelected: (date) {
+                setState(() {
+                  final lineId = product.ticketLineId;
+                  _selectedDates[lineId] = date;
+                  _selectedAlertDates.putIfAbsent(
+                    lineId,
+                    () => date.subtract(const Duration(days: 3)),
+                  );
+                });
+              },
             ),
             const SizedBox(height: 12),
 
