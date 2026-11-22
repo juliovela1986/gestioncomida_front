@@ -3,6 +3,7 @@ import '../services/inventory_service.dart';
 import '../models/grouped_inventory.dart';
 import 'product_lots_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../widgets/expiry_status_chip.dart';
 
 class InventoryScreen extends StatefulWidget {
   const InventoryScreen({super.key});
@@ -131,15 +132,24 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return filtered;
   }
 
-  Color _getExpirationColor(String? expirationDate, int? daysUntil) {
-    if (expirationDate == null) return Colors.grey;
-    if (daysUntil == null) return Colors.grey;
-    if (daysUntil < 0) return Colors.red;
-    if (daysUntil <= 3) return Colors.orange;
-    return Colors.green;
+  LotDetail? _lotForNextExpiration(GroupedInventoryResponse product) {
+    final next = product.nextExpirationDate;
+    if (next == null || product.lots.isEmpty) {
+      return product.lots.isNotEmpty ? product.lots.first : null;
+    }
+    for (final lot in product.lots) {
+      if (lot.expirationDate == next) return lot;
+    }
+    LotDetail? best;
+    for (final lot in product.lots) {
+      if (lot.daysUntilExpiration == null) continue;
+      if (best == null ||
+          lot.daysUntilExpiration! < (best.daysUntilExpiration ?? 999999)) {
+        best = lot;
+      }
+    }
+    return best ?? product.lots.first;
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +304,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             final product = _filteredProducts[index];
                             final hasLotsWithoutDate = product.lots.any((l) => l.expirationDate == null);
                             final nextExpDate = product.nextExpirationDate;
-                            final firstLot = product.lots.isNotEmpty ? product.lots.first : null;
+                            final nextLot = _lotForNextExpiration(product);
+                            final daysUntil = nextLot?.daysUntilExpiration;
+                            final expiryColor = ExpiryStatusChip.colorFor(
+                              hasDate: nextExpDate != null,
+                              daysUntil: daysUntil,
+                            );
                             
                             // Obtener ubicaciones únicas de todos los lotes
                             final locations = product.lots
@@ -305,9 +320,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 4),
+                              color: daysUntil != null && daysUntil < 0
+                                  ? Colors.red.shade50
+                                  : null,
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: _getExpirationColor(nextExpDate, firstLot?.daysUntilExpiration),
+                                  backgroundColor: expiryColor,
                                   child: Text(
                                     '${product.lotCount}',
                                     style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -328,14 +346,32 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                         '📍 ${locations.join(", ")}',
                                         style: const TextStyle(color: Colors.blue, fontSize: 12),
                                       ),
-                                    if (nextExpDate != null)
-                                      Text(
-                                        '${l10n.nextExpiration}: $nextExpDate${firstLot?.daysUntilExpiration != null ? " (${firstLot!.daysUntilExpiration! < 0 ? l10n.expiredLabel : l10n.inDays(firstLot.daysUntilExpiration!)})" : ""}',
-                                        style: TextStyle(
-                                          color: _getExpirationColor(nextExpDate, firstLot?.daysUntilExpiration),
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    if (nextExpDate != null) ...[
+                                      const SizedBox(height: 4),
+                                      Wrap(
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        children: [
+                                          Text(
+                                            '${l10n.nextExpiration}: $nextExpDate',
+                                            style: TextStyle(
+                                              color: expiryColor,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          if (daysUntil != null)
+                                            ExpiryStatusChip(
+                                              daysUntil: daysUntil,
+                                              hasDate: true,
+                                            ),
+                                        ],
                                       ),
+                                    ] else ...[
+                                      const SizedBox(height: 4),
+                                      const ExpiryStatusChip(daysUntil: null, hasDate: false),
+                                    ],
                                     if (hasLotsWithoutDate)
                                       Text(l10n.lotsWithoutDate, style: const TextStyle(color: Colors.orange)),
                                   ],

@@ -6,6 +6,7 @@ import '../core/idempotency_utils.dart';
 import '../l10n/app_localizations.dart';
 import '../services/inventory_service.dart';
 import '../models/pending_expiration_item.dart';
+import '../widgets/expiry_status_chip.dart';
 import 'trash_screen.dart';
 
 typedef ExpiredPendingItemsLoader = Future<List<ExpiredPendingItemDto>> Function();
@@ -396,13 +397,8 @@ class _ExpiredProductsScreenState extends State<ExpiredProductsScreen> {
                                   const SizedBox(height: 4),
                                   if (item.locationName != null && item.locationName!.isNotEmpty)
                                     Text(item.locationName!),
-                                  Text(
-                                    l10n.expiredDaysAgo(item.daysExpired),
-                                    style: const TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  const SizedBox(height: 4),
+                                  ExpiryStatusChip.expiredAgo(item.daysExpired),
                                   Text('${l10n.date}: ${_formatExpirationDate(item.expirationDate)}'),
                                 ],
                               ),

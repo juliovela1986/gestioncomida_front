@@ -7,6 +7,7 @@ import '../services/inventory_service.dart';
 import '../services/location_service.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/expiry_date_quick_chips.dart';
+import '../widgets/expiry_status_chip.dart';
 
 class ProductLotsScreen extends StatefulWidget {
   final GroupedInventoryResponse product;
@@ -97,11 +98,10 @@ class _ProductLotsScreenState extends State<ProductLotsScreen> {
   }
 
   Color _getLotColor(LotDetail lot) {
-    if (lot.expirationDate == null) return Colors.grey;
-    if (lot.daysUntilExpiration == null) return Colors.grey;
-    if (lot.daysUntilExpiration! < 0) return Colors.red;
-    if (lot.daysUntilExpiration! <= 3) return Colors.orange;
-    return Colors.green;
+    return ExpiryStatusChip.colorFor(
+      hasDate: lot.expirationDate != null,
+      daysUntil: lot.daysUntilExpiration,
+    );
   }
 
   IconData _getLotIcon(LotDetail lot) {
@@ -378,18 +378,17 @@ class _ProductLotsScreenState extends State<ProductLotsScreen> {
                           ),
                         if (lot.expirationDate != null) ...[
                           Text('${l10n.expirationLabel}: ${lot.expirationDate}'),
-                          if (lot.daysUntilExpiration != null)
-                            Text(
-                              lot.daysUntilExpiration! < 0
-                                  ? l10n.expiredDaysAgo(-lot.daysUntilExpiration!)
-                                  : l10n.inDaysCount(lot.daysUntilExpiration!),
-                              style: TextStyle(
-                                color: _getLotColor(lot),
-                                fontWeight: FontWeight.bold,
-                              ),
+                          if (lot.daysUntilExpiration != null) ...[
+                            const SizedBox(height: 4),
+                            ExpiryStatusChip(
+                              daysUntil: lot.daysUntilExpiration,
+                              hasDate: true,
                             ),
-                        ] else
-                          Text(l10n.noExpirationDate, style: const TextStyle(color: Colors.orange)),
+                          ],
+                        ] else ...[
+                          const SizedBox(height: 4),
+                          const ExpiryStatusChip(daysUntil: null, hasDate: false),
+                        ],
                         
                         if (lot.alertDate != null)
                           Text(

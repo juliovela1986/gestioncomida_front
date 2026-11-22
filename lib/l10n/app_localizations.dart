@@ -263,6 +263,10 @@ class AppLocalizations {
       'expiration_label': 'Caduca',
       'expired_days_ago': 'Caducado hace {days} días',
       'in_days_count': 'En {days} días',
+      // SCRUM-193
+      'expires_today': 'Caduca hoy',
+      'days_left': 'Quedan {days} días',
+      'no_date_short': 'Sin fecha',
       'edit_product': 'Editar Producto',
       'select_location': 'Selecciona una ubicación',
       'expiration_date': 'Fecha de Caducidad',
@@ -571,6 +575,10 @@ class AppLocalizations {
       'expiration_label': 'Expires',
       'expired_days_ago': 'Expired {days} days ago',
       'in_days_count': 'In {days} days',
+      // SCRUM-193
+      'expires_today': 'Expires today',
+      'days_left': '{days} days left',
+      'no_date_short': 'No date',
       'edit_product': 'Edit Product',
       'select_location': 'Select a location',
       'expiration_date': 'Expiration Date',
@@ -879,6 +887,10 @@ class AppLocalizations {
       'expiration_label': 'Caduca',
       'expired_days_ago': 'Caducat fa {days} dies',
       'in_days_count': 'En {days} dies',
+      // SCRUM-193
+      'expires_today': 'Caduca avui',
+      'days_left': 'Queden {days} dies',
+      'no_date_short': 'Sense data',
       'edit_product': 'Editar Producte',
       'select_location': 'Selecciona una ubicació',
       'expiration_date': 'Data de Caducitat',
@@ -1187,6 +1199,10 @@ class AppLocalizations {
       'expiration_label': 'Iraungitze',
       'expired_days_ago': 'Duela {days} egun iraungita',
       'in_days_count': '{days} egun barru',
+      // SCRUM-193
+      'expires_today': 'Gaur iraungitzen da',
+      'days_left': '{days} egun falta',
+      'no_date_short': 'Datarik gabe',
       'edit_product': 'Produktua aldatu',
       'select_location': 'Hautatu kokaleku bat',
       'expiration_date': 'Iraungitze data',
@@ -1495,6 +1511,10 @@ class AppLocalizations {
       'expiration_label': 'Caduca',
       'expired_days_ago': 'Caducado fai {days} días',
       'in_days_count': 'En {days} días',
+      // SCRUM-193
+      'expires_today': 'Caduca hoxe',
+      'days_left': 'Quedan {days} días',
+      'no_date_short': 'Sen data',
       'edit_product': 'Editar Produto',
       'select_location': 'Selecciona unha localización',
       'expiration_date': 'Data de Caducidade',
@@ -1658,6 +1678,10 @@ class AppLocalizations {
   String get expirationLabel => translate('expiration_label');
   String expiredDaysAgo(int days) => translate('expired_days_ago', params: {'days': days.toString()});
   String inDaysCount(int days) => translate('in_days_count', params: {'days': days.toString()});
+  // SCRUM-193
+  String get expiresToday => translate('expires_today');
+  String daysLeft(int days) => translate('days_left', params: {'days': days.toString()});
+  String get noDateShort => translate('no_date_short');
   String get editProduct => translate('edit_product');
   String get selectLocation => translate('select_location');
   String get expirationDate => translate('expiration_date');
